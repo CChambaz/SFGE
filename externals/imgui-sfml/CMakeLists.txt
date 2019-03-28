@@ -30,7 +30,9 @@ if(IMGUI_ROOT)
             "${IMGUI_INCLUDE_DIR}/imgui_draw.cpp"
             "${IMGUI_INCLUDE_DIR}/imgui_demo.cpp"
             "${IMGUI_INCLUDE_DIR}/imgui.cpp"
-            "${IMGUI_INCLUDE_DIR}/imgui.h")
+            "${IMGUI_INCLUDE_DIR}/imgui.h"
+            "${IMGUI_INCLUDE_DIR}/imgui_widgets.cpp"
+                )
         include_directories(${IMGUI_INCLUDE_DIR})
         message("Found imgui.cpp in ${IMGUI_INCLUDE_DIR}")
         # Rename that pesky imconfig.h file for the user.

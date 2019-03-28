@@ -56,14 +56,14 @@ void Timer::Reset()
 	}
 }
 
-float Timer::GetCurrent()
+float Timer::GetCurrentRatio()
 {
-	return GetCurrentTime()/m_Period;
+	return GetTimeFromStart() / m_Period;
 }
 
-float Timer::GetCurrentTime()
+float Timer::GetTimeFromStart() const
 {
-	return m_Period-m_Time;
+	return m_Period - m_Time;
 }
 
 float Timer::GetPeriod() const

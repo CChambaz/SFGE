@@ -1,0 +1,55 @@
+{
+    "frames": [
+        {
+            "filename": "Pepper_publish.png",
+            "key": 0,
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "size": {
+                "x": 24,
+                "y": 32
+            }
+        },
+        {
+            "filename": "Pepper_publish.png",
+            "key": 1,
+            "position": {
+                "x": 24,
+                "y": 0
+            },
+            "size": {
+                "x": 24,
+                "y": 32
+            }
+        },
+        {
+            "filename": "Pepper_publish.png",
+            "key": 2,
+            "position": {
+                "x": 48,
+                "y": 0
+            },
+            "size": {
+                "x": 24,
+                "y": 32
+            }
+        },
+        {
+            "filename": "Pepper_publish.png",
+            "key": 3,
+            "position": {
+                "x": 24,
+                "y": 0
+            },
+            "size": {
+                "x": 24,
+                "y": 32
+            }
+        }
+    ],
+    "isLooped": true,
+    "name": "cowboy_walk",
+    "speed": 177
+}

@@ -28,6 +28,29 @@
 #define SFGE_GLOBALS_H
 
 
+#if ((ULONG_MAX) == (UINT_MAX))
+#define IS64BIT
+#else
+#define IS32BIT
+#endif
+
 #define PATH_LIMIT 4096
+#define INIT_ENTITY_NMB 100
+
+#define SFGE_VERSION 0.2
+
+using Entity = unsigned;
+const Entity INVALID_ENTITY = 0U;
+const size_t  MULTIPLE_COMPONENTS_MULTIPLIER = 4;
+enum class ModuleType
+{
+	ENTITY,
+	TRANSFORM2D,
+	GRAPHICS2D,
+
+};
+
+
+
 
 #endif //SFGE_GLOBALS_H

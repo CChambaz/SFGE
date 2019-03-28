@@ -23,81 +23,220 @@ SOFTWARE.
 */
 
 #include <physics/body2d.h>
-#include <physics/physics.h>
-#include <engine/game_object.h>
-#include <engine/transform.h>
-
+#include <physics/physics2d.h>
+#include <engine/transform2d.h>
+#include <engine/entity.h>
+#include <imgui.h>
+#include <imgui-SFML.h>
+#include <engine/engine.h>
 namespace sfge
 {
-
-void Body2d::Init()
+Body2d::Body2d() : Offsetable(sf::Vector2f())
 {
 }
 
-void Body2d::Update(float dt)
+Body2d::Body2d(Transform2d *transform, Vec2f offset) : Offsetable(offset)
 {
-	m_GameObject->GetTransform()->SetPosition(meter2pixel(m_Body->GetPosition()));
+	
 }
 
-b2Body * Body2d::GetBody()
+b2Vec2 Body2d::GetLinearVelocity()
+{
+	if (m_Body != nullptr)
+		return m_Body->GetLinearVelocity();
+		
+	return b2Vec2();
+}
+
+void Body2d::SetLinearVelocity(b2Vec2 velocity)
+{
+	if (m_Body != nullptr)
+		m_Body->SetLinearVelocity(velocity);
+
+}
+
+void Body2d::ApplyForce(b2Vec2 force)
+{
+	if (m_Body != nullptr)
+		m_Body->ApplyForceToCenter(force, true);
+}
+
+b2BodyType Body2d::GetType()
+{
+	if(m_Body != nullptr)
+		return m_Body->GetType();
+	return b2_staticBody;
+}
+
+float Body2d::GetMass()
+{
+	if (m_Body)
+		return m_Body->GetMass();
+	return 0.0f;
+}
+
+void Body2d::SetBody(b2Body * body)
+{
+	m_Body = body;
+}
+
+b2Body * Body2d::GetBody() const
 {
 	return m_Body;
 }
 
-void Body2d::SetVelocity(b2Vec2 v)
+void editor::Body2dInfo::DrawOnInspector()
 {
-	if (m_Body != nullptr)
+	const auto& body = bodyManager->GetComponentRef(m_Entity);
+	const auto* b2Body = body.GetBody();
+	ImGui::Separator();
+	ImGui::Text("Body2d");
+	if(b2Body != nullptr)
 	{
-		m_Body->SetLinearVelocity(v);
-	}
-}
-
-b2Vec2 Body2d::GetVelocity()
-{
-	if (m_Body != nullptr)
-	{
-		return m_Body->GetLinearVelocity();
-	}
-	return b2Vec2();
-}
-
-
-
-Body2d * Body2d::LoadBody2d(Engine & engine, GameObject * gameObject, json& componentJson)
-{
-	auto physicsManager = engine.GetPhysicsManager();
-	if (physicsManager->GetWorld() == nullptr)
-	{
-		return nullptr;
-	}
-	b2World* world = physicsManager->GetWorld();
-	
-	b2BodyDef bodyDef;
-
-	bodyDef.type = b2BodyType::b2_dynamicBody;
-	if (CheckJsonNumber(componentJson, "body_type"))
-	{
-		bodyDef.type = componentJson["body_type"];
-	}
-	bodyDef.position = pixel2meter(gameObject->GetTransform()->GetPosition());
-	if (CheckJsonParameter(componentJson, "offset", json::value_t::array))
-	{
-		if (componentJson["offset"].size() == 2)
+		switch (b2Body->GetType())
 		{
-			bodyDef.position += pixel2meter(sf::Vector2f(componentJson["offset"]["x"], componentJson["offset"]["y"]));
+		case b2_staticBody:
+			ImGui::LabelText("Type", "Static");
+			break;
+		case b2_dynamicBody:
+			ImGui::LabelText("Type", "Dynamic");
+			break;
+		case b2_kinematicBody:
+			ImGui::LabelText("Type", "Kinematic");
+			break;
+		}
+		float velocity[2] =
+		{
+			meter2pixel(b2Body->GetLinearVelocity().x),
+			meter2pixel(b2Body->GetLinearVelocity().y)
+		};
+		ImGui::InputFloat2("Velocity", velocity);
+		if (ImGui::IsItemHovered())
+		{
+			auto& velocities = m_Velocities;
+			std::vector<float> xValues(velocities.size());
+			std::vector<float> yValues(velocities.size());
+			for (auto vIndex = 0u; vIndex < velocities.size(); vIndex++)
+			{
+				xValues[vIndex] = velocities[vIndex].x;
+				yValues[vIndex] = velocities[vIndex].y;
+			}
+			//Plot last second velocities
+			ImGui::BeginTooltip();
+			ImGui::PlotLines("X", &xValues[0], xValues.size(), 0, "", -10.0f, 10.0f, ImVec2(0, 120));
+			ImGui::PlotLines("Y", &yValues[0], yValues.size(), 0, "", -10.0f, 10.0f, ImVec2(0, 120));
+			ImGui::EndTooltip();
 		}
 	}
-	if (CheckJsonNumber(componentJson, "gravity_scale"))
-	{
-		bodyDef.gravityScale = componentJson["gravity_scale"];
-	}
-
-	b2Body* body = world->CreateBody(&bodyDef);
-	Body2d* bodyComponent = new Body2d(gameObject);
-	bodyComponent->m_Body = body;
-	physicsManager->m_Bodies.push_back(bodyComponent);
-	return bodyComponent;
 }
 
+void editor::Body2dInfo::AddVelocity(b2Vec2 velocity)
+{
+	m_Velocities.push_back(velocity);
+	if(m_Velocities.size() > m_VelocitiesMaxSize)
+	{
+		m_Velocities.pop_front();
+	}
+}
+
+std::deque<b2Vec2>& editor::Body2dInfo::GetVelocities()
+{
+	return m_Velocities;
+}
+
+
+
+void Body2dManager::OnEngineInit()
+{
+	SingleComponentManager::OnEngineInit();
+	m_Transform2dManager = m_Engine.GetTransform2dManager();
+	m_WorldPtr = m_Engine.GetPhysicsManager()->GetWorld();
+}
+
+void Body2dManager::OnFixedUpdate()
+{
+	for (auto i = 0u; i < m_Components.size(); i++)
+	{
+		const Entity entity = i + 1;
+		if (m_EntityManager->HasComponent(entity, ComponentType::BODY2D) &&
+			m_EntityManager->HasComponent(entity, ComponentType::TRANSFORM2D))
+		{
+			auto & transform = m_Transform2dManager->GetComponentRef(entity);
+			auto & body2d = GetComponentRef(entity);
+			m_ComponentsInfo[i].AddVelocity(body2d.GetLinearVelocity());
+			transform.Position = meter2pixel(body2d.GetBody()->GetPosition()) - static_cast<sf::Vector2f>(body2d.GetOffset());
+		}
+	}
+}
+
+Body2d* Body2dManager::AddComponent(Entity entity)
+{
+	if (auto world = m_WorldPtr.lock())
+	{
+		b2BodyDef bodyDef;
+		bodyDef.type = b2_dynamicBody;
+
+		auto* transform = m_Transform2dManager->GetComponentPtr(entity);
+		const auto pos = transform->Position;
+		bodyDef.position.Set(pixel2meter(pos.x), pixel2meter(pos.y));
+
+		auto* body = world->CreateBody(&bodyDef);
+		m_Components[entity - 1] = Body2d(transform, sf::Vector2f());
+		m_Components[entity - 1].SetBody(body);
+
+		auto& componentInfo = m_ComponentsInfo[entity-1];
+		componentInfo.bodyManager = this;
+		componentInfo.SetEntity(entity);
+		componentInfo.name = "Body";
+
+		m_EntityManager->AddComponentType(entity, ComponentType::BODY2D);
+		return &m_Components[entity - 1];
+	}
+	return nullptr;
+}
+
+void Body2dManager::CreateComponent(json& componentJson, Entity entity)
+{
+	//Log::GetInstance()->Msg("Create component Transform");
+	if (auto world = m_WorldPtr.lock())
+	{
+		b2BodyDef bodyDef;
+		if (CheckJsonExists(componentJson, "body_type"))
+		{
+			bodyDef.type = componentJson["body_type"];
+		}
+		if (CheckJsonNumber(componentJson, "gravity_scale"))
+		{
+			bodyDef.gravityScale = componentJson["gravity_scale"];
+		}
+
+		const auto offset = GetVectorFromJson(componentJson, "offset");
+		const auto velocity = GetVectorFromJson(componentJson, "velocity");
+
+		auto* transform = m_Transform2dManager->GetComponentPtr(entity);
+		const auto pos = transform->Position + offset;
+		bodyDef.position.Set(pixel2meter(pos.x), pixel2meter(pos.y));
+		
+		auto* body = world->CreateBody(&bodyDef);
+		body->SetLinearVelocity(pixel2meter(velocity));
+		m_Components[entity - 1] = Body2d(transform, offset);
+		m_Components[entity - 1].SetBody(body);
+
+
+		m_ComponentsInfo[entity - 1].bodyManager = this;
+		m_ComponentsInfo[entity - 1].SetEntity(entity);
+	}
+}
+
+void Body2dManager::DestroyComponent(Entity entity)
+{
+	(void) entity;
+}
+
+void Body2dManager::OnResize(size_t new_size)
+{
+	m_Components.resize(new_size);
+	m_ComponentsInfo.resize(new_size);
+}
 }
 

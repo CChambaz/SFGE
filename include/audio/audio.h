@@ -25,70 +25,47 @@ SOFTWARE.
 #ifndef SFGE_AUDIO_H
 #define SFGE_AUDIO_H
 
-#include <engine/engine.h>
-#include <engine/component.h>
-#include <SFML/Audio.hpp>
 #include <map>
 #include <string>
-#include "utility/json_utility.h"
+#include <memory>
+#include <string>
+
+#include <SFML/Audio.hpp>
+
+#include <engine/system.h>
 #include <audio/sound.h>
+#include <audio/music.h>
 
 namespace sfge
 {
 
-
-
-class MusicManager 
+class AudioManager : public System
 {
-public:
-	MusicManager();
-	/**
-	* \brief open a music from a path file, put it on MusicMap and return the matchin id
-	* \param filename The filename of the music file
-	*/
-	unsigned int LoadMusic(std::string filename);
-	/**
-	* \brief return the music attached to the given musicId on MusicMap
-	* \param musicId the id key of the music
-	*/
-	std::shared_ptr<sf::Music> GetMusic(unsigned int musicId);
-	~MusicManager();
-protected:
-	std::map< std::string , unsigned int> musicPathId;
-	std::map<unsigned int, std::shared_ptr<sf::Music>> musicMap;
-	unsigned int incrementId = 0;
-};
 
-class AudioManager : public Module
-{
-protected:
-	SoundManager m_SoundManager;
-	MusicManager m_MusicManager;
 public:
-	using Module::Module;
-	/**
-	* \brief construct the AudioManager
-	* \param engine use for init the module
-	* \param enable use for ImGui
-	*/
-	AudioManager(Engine& engine, bool enable = true);
+	using System::System;
+
+	//AudioManager(const AudioManager&) = delete;
 	/**
 	* \brief Initialize SoundManager class, SoundBuffer class and MusicManager class
 	*/
-	void Init() override;
+	void OnEngineInit() override;
 	/**
 	* \brief Update the audioManager, called only in play mode
 	* \ param dt The delta time since last frame
 	*/
-	void Update(sf::Time dt) override;
-	/**
-	* \brief delete the AudioManager
-	*/
+	void OnUpdate(float dt) override;
+
 	SoundManager* GetSoundManager();
 	MusicManager* GetMusicManager();
+	SoundBufferManager* GetSoundBufferManager();
 	void Destroy() override;
-	void Reset() override;
-	void Collect() override;
+	void OnBeforeSceneLoad() override;
+	void OnAfterSceneLoad() override;
+protected:
+	SoundManager m_SoundManager {m_Engine};
+	SoundBufferManager m_SoundBufferManager{ m_Engine };
+	MusicManager m_MusicManager;
 };
 }
 #endif // !SFGE_AUDIO

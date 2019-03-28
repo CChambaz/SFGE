@@ -23,34 +23,69 @@ SOFTWARE.
 */
 
 #ifndef SFGE_BODY2D_H
-#define SFGE_BODY2D_G
+#define SFGE_BODY2D_H
 
-#include <engine/log.h>
-#include <engine/component.h>
-#include <utility/json_utility.h>
 
 #include <Box2D/Box2D.h>
+#include <engine/component.h>
+#include <engine/transform2d.h>
+#include <editor/editor.h>
 
 namespace sfge
 {
 
-class Body2d : public Component
+class Body2d: public Offsetable
 {
 public:
-	using Component::Component;
-	void Init() override;
-	void Update(float dt) override;
+	Body2d();
+	Body2d(Transform2d *transform, Vec2f offset);
 
-	b2Body* GetBody();
-
-	void SetVelocity(b2Vec2 v);
-	b2Vec2 GetVelocity();
-
-
-	static Body2d* LoadBody2d(Engine& engine, GameObject* gameObject, json& componentJson);
-protected:
+	b2Vec2 GetLinearVelocity();
+	void SetLinearVelocity(b2Vec2 velocity);
+	void ApplyForce(b2Vec2 force);
+	b2BodyType GetType();
+	float GetMass();
+	void SetBody(b2Body* body);
+	b2Body* GetBody() const;
+private:
 	b2Body * m_Body = nullptr;
 };
+
+class BodyManager;
+
+namespace editor
+{
+struct Body2dInfo : ComponentInfo
+{
+	void DrawOnInspector() override;
+	void AddVelocity(b2Vec2 velocity);
+	std::deque<b2Vec2>& GetVelocities();
+
+	Body2dManager* bodyManager = nullptr;
+private:
+	std::deque<b2Vec2> m_Velocities;
+	const size_t m_VelocitiesMaxSize = 120;
+};
+}
+
+class Body2dManager : public SingleComponentManager<Body2d, editor::Body2dInfo, ComponentType::BODY2D>
+{
+public:
+	using SingleComponentManager::SingleComponentManager;
+	void OnEngineInit() override;
+	void OnFixedUpdate() override;
+	Body2d* AddComponent(Entity entity) override;
+	void CreateComponent(json& componentJson, Entity entity) override;
+	void DestroyComponent(Entity entity) override;
+
+	void OnResize(size_t new_size) override;
+
+private:
+	Transform2dManager* m_Transform2dManager;
+	std::weak_ptr<b2World> m_WorldPtr;
+};
+
+
 
 }
 

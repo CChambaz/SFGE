@@ -3,6 +3,8 @@ ImGui + SFML
 
 Library which allows you to use [ImGui](https://github.com/ocornut/imgui) with [SFML](https://github.com/SFML/SFML)
 
+> Use [ImGui-SFML's v1.0](https://github.com/eliasdaler/imgui-sfml/releases/tag/v.1.0) if you're using ImGui's stable release (v.1.53)! This repo's master will be kept up to date with breaking changes in ImGui's master.
+
 ![screenshot](https://i2.wp.com/i.imgur.com/iQibpSk.gif)
 
 Based on [this repository](https://github.com/Mischa-Alff/imgui-backends) with big improvements and changes.
@@ -22,6 +24,7 @@ Setting up:
 - Copy the contents of `imconfig-SFML.h` to your `imconfig.h` file. (to be able to cast `ImVec2` to `sf::Vector2f` and vice versa)
 - Add a folder which contains `imgui-SFML.h` to your include directories
 - Add `imgui-SFML.cpp` to your build/project
+- Link OpenGL if you get linking errors
 
 In your code:
 
@@ -39,7 +42,7 @@ In your code:
 
     - Call `ImGui::SFML::Update(window, deltaTime)` where `deltaTime` is `sf::Time`. You can also pass mousePosition and displaySize yourself instead of passing the window.
     - Call ImGui functions (`ImGui::Begin()`, `ImGui::Button()`, etc.)
-    - Call `ImGui::EndFrame` if you update more than once before rendering (you'll need to include `imgui_internal.h` for that)
+    - Call `ImGui::EndFrame` after the last `ImGui::End` in your update function, if you update more than once before rendering. (e.g. fixed delta game loops)
     - Call `ImGui::SFML::Render(window)`
 
 - Call `ImGui::SFML::Shutdown()` at the end of your program
@@ -99,7 +102,7 @@ int main()
 Fonts how-to
 ---
 
-Default font is loaded if you don't pass false in `ImGui::SFML::Init`. Call `ImGui::SFML::Init(window, false);` if you don't want default font to be loaded.
+Default font is loaded if you don't pass `false` in `ImGui::SFML::Init`. Call `ImGui::SFML::Init(window, false);` if you don't want default font to be loaded.
 
 * Load your fonts like this:
 
@@ -149,6 +152,33 @@ ImGui::Image(const sf::Texture& texture);
 ImGui::ImageButton(const sf::Sprite& sprite);
 ImGui::ImageButton(const sf::Texture& texture);
 ```
+
+Keyboard/Gamepad navigation
+---
+Starting with [ImGui 1.60](https://github.com/ocornut/imgui/releases/tag/v1.60), there's a feature to control ImGui with keyboard and gamepad. To use keyboard navigation, you just need to do this:
+
+```c++
+ImGuiIO& io = ImGui::GetIO();
+io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+```
+
+Gamepad navigation requires more work, unless you have XInput gamepad, in which case the mapping is automatically set for you. But you can still set it up for your own gamepad easily, just take a look how it's done for the default mapping [here](https://github.com/eliasdaler/imgui-sfml/blob/navigation/imgui-SFML.cpp#L697). And then you need to do this:
+
+```c++
+ImGuiIO& io = ImGui::GetIO();
+io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+```
+By default, the first active joystick is used for navigation, but you can set joystick id explicitly like this:
+```c++
+ImGui::SFML::SetActiveJoystickId(5);
+```
+
+High DPI screens
+----
+
+As SFML is not currently DPI aware, your window/gui may show at the incorrect scale. This is particularly noticeable on Apple systems with Retina displays.
+
+To fix this on macOS, you can create an app bundle (as opposed to just the exe) then modify the info.plist so that "High Resolution Capable" is set to "NO"
 
 License
 ---

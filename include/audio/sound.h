@@ -22,83 +22,117 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <SFML/Audio.hpp>
-#include <engine/game_object.h>
-#include <engine/component.h>
-
 
 #ifndef SFGE_SOUND_H
 #define SFGE_SOUND_H
+#include <vector>
+
+#include <SFML/Audio.hpp>
+#include <engine/component.h>
+#include <editor/editor_info.h>
+
 namespace sfge
 {
+class EntityManager;
 class SoundManager;
+
+using SoundId = unsigned int;
+const SoundId INVALID_SOUND_ID = 0U;
+
+using SoundBufferId = unsigned int;
+const SoundBufferId INVALID_SOUND_BUFFER = 0U;
+
+const auto MAX_SOUND_BUFFER_SIZE = 1'000'000ll;
+
+
 
 /**
 * \brief Sound class child is a Component
 */
-class Sound : public Component
+class Sound
 {
-protected:
-	sf::Sound* m_Sound = nullptr;
 public:
-	Sound(GameObject* gameObject);
+	Sound();
 	~Sound();
 	/**
 	* \brief initialize the Sound class
 	*/
-	void Init() override;
-	/**
-	* \brief Update the audioManager, called only in play mode
-	* \ param dt The delta time since last frame
-	*/
-	void Update(float dt) override;
-	/**
-	* \brief create a sf::Sound, call LoadSound of SoundManager class and return the created sound
-	* \param engine The engine using for create a dynamic_pointer_cast of audio_manager
-	* \param componentJson The json using when call LoadSound of SoundManager class
-	* \param gameObject The GameObject which the sound is attached
-	*/
-	static Sound* LoadSound(Engine& engine, json& componentJson, GameObject* gameObject);
+	void Init();
+
+
 	void SetBuffer(sf::SoundBuffer* buffer);
 	void Play();
+	void Stop();
+
+	Entity GetEntity();
+	void SetEntity(Entity newEntity);
+protected:
+	sf::Sound m_Sound;
+	Entity m_Entity = INVALID_ENTITY;
 };
 
-class SoundManager
+class SoundBufferManager : public System
 {
 public:
-	SoundManager();
+
+	using System::System;
+
+	~SoundBufferManager();
+
+	void OnEngineInit() override;
+
+	void LoadSoundBuffers(std::string filename);
+
+	void OnBeforeSceneLoad() override;
+	
+	void OnAfterSceneLoad() override;
+
+	SoundBufferId LoadSoundBuffer(std::string filename);
+	sf::SoundBuffer* GetSoundBuffer(SoundBufferId soundBufferId);
+private:
+
+  	bool HasValidExtension(std::string filename);
+	std::vector<std::string> m_SoundBufferPaths{ INIT_ENTITY_NMB };
+	std::vector<size_t> m_SoundBufferCountRefs{ INIT_ENTITY_NMB };
+	std::vector<std::unique_ptr<sf::SoundBuffer>> m_SoundBuffers{INIT_ENTITY_NMB};
+	SoundBufferId m_IncrementId = 0U;
+
+};
+
+namespace editor
+{
+struct SoundInfo : ComponentInfo, PathEditorComponent
+{
+	void DrawOnInspector() override;
+	sfge::SoundBufferId SoundBufferId = sfge::INVALID_SOUND_BUFFER;
+	sfge::Sound* Sound = nullptr;
+	std::string bufferPath = "";
+};
+}
+
+const size_t MAX_SOUND_CHANNELS = 16;
+
+class SoundManager : public BasicComponentManager<Sound, editor::SoundInfo, ComponentType::SOUND>
+{
+public:
+	SoundManager(Engine& engine);
 	~SoundManager();
-	/**
-	* \brief load a sf::SoundBuffer, put it on soundBufferMap and return the matchin id
-	* \param filename The filename of the buffer file
-	*/
-	unsigned int LoadSoundBuffer(std::string filename);
-	/**
-	* \brief return the sf::SoundBuffer attached to the given sound_buffer_id on the soundBufferMap
-	* \param sound_buffer_id The id key of the soundBuffer
-	*/
-	sf::SoundBuffer* GetSoundBuffer(unsigned int sound_buffer_id);
 
-	/**
-	* \brief load a buffer from a json["path"] and ad it to the newSound
-	* \param componentJson The json using for load a sf::SoundBuffer when call LoadSoundBuffer from SoundBuffer class
-	* \param newSound The sound where sf::SoundBuffer was set
-	*/
-	void LoadSound(json& componentJson, Sound* sound);
+    void OnEngineInit() override;
 
-	void Reset();
+	Sound* AddComponent(Entity entity) override;
 
-	void Collect();
+	//TODO use similar construction as pycomponent
+	void CreateComponent(json& componentJson, Entity entity) override;
+	void DestroyComponent(Entity entity) override;
+	void OnBeforeSceneLoad() override;
+	void OnAfterSceneLoad() override;
+
+	Sound* GetComponentPtr(Entity entity) override;
 
 protected:
-	/**
-	* \brief The list where the sounds of LoadSound fuction of SoundManager was placed
-	*/
-	std::list<Sound*> m_Sounds;
-	std::map<std::string, unsigned int> idsPathMap;
-	std::map<unsigned int, unsigned int> idsRefCountMap;
-	std::map<unsigned int, sf::SoundBuffer*> soundBufferMap;
-	unsigned int incrementId = 0;
+	int GetFreeComponentIndex() override;
+	SoundBufferManager* m_SoundBufferManager = nullptr;
 };
 }
 #endif

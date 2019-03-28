@@ -21,178 +21,343 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
  */
+#ifdef WIN32
+#define _USE_MATH_DEFINES
+#endif
+
+#include <cmath>
+#include <vector>
 
 //SFGE includes
-#include <engine/game_object.h>
 #include <engine/scene.h>
-#include <engine/log.h>
+#include <utility/log.h>
+#include <utility/json_utility.h>
+#include <editor/editor.h>
+#include <engine/config.h>
+#include <utility/file_utility.h>
+#include <engine/entity.h>
+#include <graphics/graphics2d.h>
+#include <python/python_engine.h>
+#include <python/pysystem.h>
+#include <physics/physics2d.h>
+#include <audio/audio.h>
+#include <engine/engine.h>
 
 // for convenience
 
 
 namespace sfge
 {
-
-
-void SceneManager::Init()
-{
+SceneManager::SceneManager(Engine& engine):
+	System(engine)
 	
+{
 }
 
-
-
-void SceneManager::Update(sf::Time dt)
+void SceneManager::OnEngineInit()
 {
-	if(m_CurrentScene != nullptr)
+	m_EntityManager = m_Engine.GetEntityManager();
+	if(auto config = m_Engine.GetConfig())
 	{
-		m_CurrentScene->Update(dt);
-	}
-	
-}
-
-std::shared_ptr<Scene> SceneManager::LoadSceneFromName(std::string sceneName)
-{
-	{
-		std::ostringstream oss;
-		oss << "Loading scene from: " << sceneName;
-		Log::GetInstance()->Msg(oss.str());
-	}
-	auto sceneJsonPtr = LoadJson(sceneName);
-	
-	if(sceneJsonPtr != nullptr)
-	{
-		return LoadSceneFromJson(*sceneJsonPtr);
-	}
-	return nullptr;
-	
-}
-
-std::shared_ptr<Scene> SceneManager::LoadSceneFromJson(json& sceneJson)
-{
-	std::shared_ptr<Scene> scene = std::make_shared<Scene>(this);
-	if (CheckJsonParameter(sceneJson, "name", json::value_t::string))
-	{
-		scene->name = sceneJson["name"].get<std::string>();
+		SearchScenes(config->dataDirname);
 	}
 	else
 	{
-		scene->name = "NewScene";
+		Log::GetInstance()->Error("No config in SceneManager Init");
+	}
+}
+
+void SceneManager::SearchScenes(std::string& dataDirname)
+{
+	std::function<void(std::string)> SearchAllScenes;
+	SearchAllScenes = [&SearchAllScenes, this](std::string entry)
+	{
+		
+		if (IsRegularFile(entry))
+		{
+			const std::string::size_type filenameExtensionIndex = entry.find_last_of('.');
+			const std::string extension = entry.substr(filenameExtensionIndex);
+			if(extension == ".scene")
+			{
+				const auto sceneJsonPtr = LoadJson(entry);
+				if(sceneJsonPtr && CheckJsonExists(*sceneJsonPtr, "name"))
+				{
+					m_ScenePathMap.insert(std::pair<std::string, std::string>((*sceneJsonPtr)["name"],entry));
+				}
+			}
+		}
+
+		if (IsDirectory(entry))
+		{
+			{
+				std::ostringstream oss;
+				oss << "Opening folder: " << entry << "\n";
+				Log::GetInstance()->Msg(oss.str());
+			}
+			IterateDirectory(entry, SearchAllScenes);
+		}
+	};
+	IterateDirectory(dataDirname, SearchAllScenes);
+}
+
+
+void SceneManager::LoadSceneFromPath(const std::string& scenePath)
+{
+	{
+		std::ostringstream oss;
+		oss << "Loading scene from: " << scenePath;
+		Log::GetInstance()->Msg(oss.str());
+	}
+	const auto sceneJsonPtr = LoadJson(scenePath);
+	
+	if(sceneJsonPtr != nullptr)
+	{
+		auto sceneInfo = std::make_unique<editor::SceneInfo>();
+		sceneInfo->path = scenePath;
+		LoadSceneFromJson(*sceneJsonPtr, std::move(sceneInfo));
+	}
+	else
+	{
+		Log::GetInstance()->Error("Invalid JSON format for scene");
+	}
+
+	
+}
+
+
+
+void SceneManager::LoadSceneFromJson(json& sceneJson, std::unique_ptr<editor::SceneInfo> sceneInfo)
+{
+	m_Engine.Clear();
+	if(!sceneInfo)
+		sceneInfo = std::make_unique<editor::SceneInfo>();
+	if (CheckJsonParameter(sceneJson, "name", json::value_t::string))
+	{
+		sceneInfo->name = sceneJson["name"].get<std::string>();
+	}
+	else
+	{
+		sceneInfo->name = "NewScene";
 	}
 	{
 		std::ostringstream oss;
-		oss << "Loading scene: " << scene->name;
+		oss << "Loading scene: " << sceneInfo->name;
 		Log::GetInstance()->Msg(oss.str());
 	}
-	if (CheckJsonParameter(sceneJson, "game_objects", json::value_t::array))
+	if (CheckJsonParameter(sceneJson, "systems", json::value_t::array))
 	{
-		for (json gameObjectJson : sceneJson["game_objects"])
+		for (auto& systemJson : sceneJson["systems"])
 		{
-			GameObject* gameObject = GameObject::LoadGameObject(m_Engine, gameObjectJson);
-			if (gameObject != nullptr)
+			auto* pythonEngine = m_Engine.GetPythonEngine();
+			if (CheckJsonExists(systemJson, "script_path"))
 			{
-				scene->m_GameObjects.push_back(gameObject);
+				std::string path = systemJson["script_path"];
+				const ModuleId moduleId = pythonEngine->LoadPyModule(path);
+				if (moduleId != INVALID_MODULE)
+				{
+					const InstanceId instanceId = pythonEngine->GetPySystemManager().LoadPySystem(moduleId);
+					PySystem* pySystem = pythonEngine->GetPySystemManager().GetPySystemFromInstanceId(instanceId);
+					if(pySystem != nullptr)
+					{
+						m_ScenePySystems.push_back(pySystem);
+					}
+					else
+					{
+						Log::GetInstance()->Error("[Python Error] Returned PySystem is null");
+					}
+				}
+				else
+				{
+					std::ostringstream oss;
+					oss << "Could not load PySystem at "<<path;
+					Log::GetInstance()->Error(oss.str());
+				}
+			}
+			if(CheckJsonExists(systemJson, "systemClassName"))
+			{
+				const std::string systemClassName = systemJson["systemClassName"];
+				auto instanceId = pythonEngine->GetPySystemManager().LoadCppExtensionSystem(systemClassName);
+				if(instanceId != INVALID_INSTANCE)
+				{
+					PySystem* pySystem = pythonEngine->GetPySystemManager().GetPySystemFromInstanceId(instanceId);
+					if(pySystem != nullptr)
+					{
+						m_ScenePySystems.push_back(pySystem);
+					}
+				}
+			}
+		}
+	}
+	if (CheckJsonParameter(sceneJson, "entities", json::value_t::array))
+	{
+		const auto entityNmb = sceneJson["entities"].size();
+		if(entityNmb > INIT_ENTITY_NMB)
+		{
+			m_EntityManager->ResizeEntityNmb(entityNmb);
+		}
+		for(auto& entityJson : sceneJson["entities"])
+		{
+			Entity entity = INVALID_ENTITY;
+			entity = m_EntityManager->CreateEntity(INVALID_ENTITY);
+			if(entity == INVALID_ENTITY)
+			{
+				std::ostringstream oss;
+				oss << "[Error] Scene: not enough entities left";
+				Log::GetInstance()->Error(oss.str());
+				continue;
+			}
+			if(CheckJsonExists(entityJson, "name"))
+			{
+				m_EntityManager->GetEntityInfo(entity).name = entityJson["name"].get<std::string>();
+			}
+			else
+			{
+				std::ostringstream oss;
+				oss << "Entity " << entity;
+				m_EntityManager->GetEntityInfo(entity).name = oss.str();
+			}
+			if (entity != INVALID_ENTITY && 
+				CheckJsonExists(entityJson, "components"))
+			{
+				
+				for (auto& componentJson : entityJson["components"])
+				{
+					if (CheckJsonExists(componentJson, "type"))
+					{
+						const ComponentType componentType = componentJson["type"];
+						const auto index = static_cast<int>(log2(static_cast<double>(componentType)));
+						if(m_ComponentManager[index] != nullptr)
+						{
+							m_ComponentManager[index]->CreateComponent(componentJson, entity);
+							m_EntityManager->AddComponentType(entity, componentType);
+						}
+					}
+					else
+					{
+						std::ostringstream oss;
+						oss << "[Error] No type specified for component with json content: " << componentJson;
+						Log::GetInstance()->Error(oss.str());
+					}
+				}
+			}
+			else
+			{
+				std::ostringstream oss;
+				oss << "[Error] No components attached in the JSON entity: " << entity << "with json content: " << entityJson;
+				Log::GetInstance()->Error(oss.str());
 			}
 		}
 	}
 	else
 	{
 		std::ostringstream oss;
-		oss << "No GameObjects in " << scene->name;
+		oss << "No Entities in " << sceneInfo->name;
 		Log::GetInstance()->Error(oss.str());
 	}
-	//m_Scenes.push_back(scene);
-	return scene;
+
+	//remove previous scene assets
+
+	m_Engine.Collect();
+
+	auto* editor = m_Engine.GetEditor();
+	editor->SetCurrentScene(std::move(sceneInfo));
+	
+	auto* pythonEngine = m_Engine.GetPythonEngine();
+	pythonEngine->InitScriptsInstances();
+
+	InitScenePySystems();
+	
+	
 }
 
-void SceneManager::SetCurrentScene(std::string sceneName)
+std::list<std::string> SceneManager::GetAllScenes()
 {
-	auto loadedScene = LoadSceneFromName(sceneName);
-	if(loadedScene != nullptr)
+	std::list<std::string> scenes;
+	std::for_each(m_ScenePathMap.begin(),m_ScenePathMap.end(), [&](const std::pair<const std::string, std::string>& ref) {
+		scenes.push_back(ref.first);
+	});
+	return scenes;
+}
+
+
+void SceneManager::LoadSceneFromName(const std::string& sceneName)
+{
+	if (m_ScenePathMap.find(sceneName) != m_ScenePathMap.end())
 	{
-		SetCurrentScene(loadedScene);
+
+		sf::Clock loadingClock;
+		m_Engine.Clear();
+		LoadSceneFromPath(m_ScenePathMap[sceneName]);
+		{
+			sf::Time loadingTime = loadingClock.getElapsedTime();
+			std::ostringstream oss;
+			oss << "Scene Loading Time: " << loadingTime.asSeconds();
+			Log::GetInstance()->Msg(oss.str());
+		}
 	}
 	else
 	{
 		std::ostringstream oss;
-		oss <<"Error while loading scene: "<<sceneName;
+		oss << "[ERROR] No scene is named: " << sceneName <<"\n";
+		oss << "Here are the list of scenes:\n";
+		for(auto& sceneNamePair : m_ScenePathMap)
+		{
+			oss << "- " << sceneNamePair.first << "\n";
+		}
 		Log::GetInstance()->Error(oss.str());
 	}
 }
-
-void SceneManager::SetCurrentScene(std::shared_ptr<Scene> scene)
+void SceneManager::AddComponentManager(IComponentFactory *componentFactory, ComponentType componentType)
 {
-	m_CurrentScene = scene;
+	const auto index = static_cast<int>(log2((double)componentType));
+	m_ComponentManager[index] = componentFactory;
 }
-
-void SceneManager::Reset()
+void SceneManager::OnUpdate(float dt)
 {
-	m_PreviousScene = m_CurrentScene;
+	rmt_ScopedCPUSample(PySceneSystemUpdate,0);
+	for(auto* pySystem: m_ScenePySystems)
+	{
+		pySystem->OnUpdate(dt);
+	}
 }
-
-void SceneManager::Collect()
+void SceneManager::OnFixedUpdate()
 {
-	
-	m_PreviousScene = nullptr;
-	m_Switching = false;
+	rmt_ScopedCPUSample(PySceneSystemFixedUpdate,0);
+	for(auto* pySystem: m_ScenePySystems)
+	{
+		pySystem->OnFixedUpdate();
+	}
 }
-
-bool SceneManager::IsSwitching()
-{
-	return m_Switching;
-}
-
-std::shared_ptr<Scene> SceneManager::GetCurrentScene()
-{
-	return m_CurrentScene;
-}
-
-
-
 void SceneManager::Destroy()
 {
-	Reset();
-	m_CurrentScene = nullptr;
-	Collect();
+	m_ScenePySystems.clear();
 }
-
-void SceneManager::LoadScene(std::string sceneName)
+void SceneManager::InitScenePySystems()
 {
-	sf::Clock loadingClock;
-	m_Engine.Reset();
-	SetCurrentScene(LoadSceneFromName(sceneName));
-	m_Switching = true;
+	rmt_ScopedCPUSample(PySceneSystemInit,0);
+	for(auto* pySystem: m_ScenePySystems)
 	{
-		sf::Time loadingTime = loadingClock.getElapsedTime();
-		std::ostringstream oss;
-		oss << "Scene Loading Time: " << loadingTime.asSeconds();
-		Log::GetInstance()->Msg(oss.str());
+		if(pySystem != nullptr)
+		{
+			pySystem->OnEngineInit();
+		}
+	}
+}
+void SceneManager::OnDraw()
+{
+	rmt_ScopedCPUSample(PySceneSystemDraw,0);
+	for(auto* pySystem: m_ScenePySystems)
+	{
+		pySystem->OnDraw();
 	}
 }
 
-
-Scene::Scene(SceneManager * sceneManager) 
-{
-	m_SceneManager = sceneManager;
-}
-
-void Scene::Update(sf::Time dt)
-{
-	for(auto gameObject : m_GameObjects)
-	{
-		gameObject->Update(dt);
+	void SceneManager::OnBeforeSceneLoad() {
+		Destroy();
 	}
-}
 
-Scene::~Scene()
+std::vector<PySystem*>& SceneManager::GetSceneSystems()
 {
-	while(!m_GameObjects.empty())
-	{
-		delete(m_GameObjects.front());
-		m_GameObjects.pop_front();
-	}
-}
-std::list<GameObject*>& Scene::GetGameObjects()
-{
-	return m_GameObjects;
+	return m_ScenePySystems;
 }
 }

@@ -24,6 +24,7 @@
 #ifndef SFGE_SINGLETON_H
 #define SFGE_SINGLETON_H
 
+#include <memory>
 namespace sfge
 {
 /**
@@ -34,8 +35,8 @@ class Singleton
 {
 protected:
 	/* Here will be the instance stored. */
+	static std::unique_ptr<T> instancePtr;
 	static T* instance;
-
 	/**
 	* \brief Private Constructor to prevent instancing.
 	*/
@@ -43,7 +44,9 @@ protected:
 	/**
 	* \brief Private destructor
 	*/
-	virtual ~Singleton() {};
+	virtual ~Singleton() {
+		instance = nullptr;
+	};
 
 public:
 	/**
@@ -54,15 +57,20 @@ public:
 		{
 			if (instance == nullptr)
 			{
-				instance = new T();
+				instancePtr = std::make_unique<T>();
+				instance = instancePtr.get();
 			}
 
 			return instance;
+
 		}
 	}
 };
 
 template<typename T>
+std::unique_ptr<T> Singleton<T>::instancePtr = nullptr;
+template<typename T>
 T* Singleton<T>::instance = nullptr;
+
 }
 #endif

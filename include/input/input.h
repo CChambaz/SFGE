@@ -25,70 +25,70 @@ SOFTWARE.
 #ifndef SFGE_INPUT_H
 #define SFGE_INPUT_H
 
-#include <engine/engine.h>
+#include <array>
+
+#include <engine/system.h>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include <SFML/System/Time.hpp>
 
 namespace sfge
 {
-class KeyboardManager;
-class MouseManager;
+
+struct KeyPressedStatus { bool previousKeyPressed; bool keyPressed; };
+
+class KeyboardManager : public System
+{
+public:
+	using System::System;
+	void OnUpdate(float dt) override;
+	bool IsKeyHeld(sf::Keyboard::Key key) const;
+	bool IsKeyDown(sf::Keyboard::Key key) const;
+	bool IsKeyUp(sf::Keyboard::Key key) const;
+
+private:
+	std::array<KeyPressedStatus, sf::Keyboard::Key::KeyCount> keyPressedStatusArray= {};
+};
+
+class MouseManager : public System
+{
+public:
+	using System::System;
+	sf::Vector2i GetPosition() const;
+	sf::Vector2i GetLocalPosition(sf::Window& window) const;
+	float GetWheelDelta();
+};
 /**
 * \brief Handles Input like the Keyboard, the Joystick or the Mouse
 */
-class InputManager : public Module
+class InputManager : public System
 {
 public:
-	using Module::Module;
-
-	InputManager(Engine& engine, bool enable = true);
+	using System::System;
 	/**
 	 * \brief Initialize the Input Manager
 	 */
-	void Init() override;
+	void OnEngineInit() override;
 	/**
 	 * \brief Update called each frame to report input status
 	 * \param dt Delta time since last frame
 	 */
-	void Update(sf::Time dt) override;
+	void OnUpdate(float dt) override;
 	void Destroy() override;
 
-	void Reset() override;
-	void Collect() override;
+	void OnBeforeSceneLoad() override;
+	void OnAfterSceneLoad() override;
 
-	KeyboardManager* GetKeyboardManager();
-	MouseManager* GetMouseManager();
-
-private:
+	KeyboardManager& GetKeyboardManager();
+	MouseManager& GetMouseManager();
 
 protected:
-	KeyboardManager* m_KeyboardManager = nullptr;
-	MouseManager* m_MouseManager = nullptr;
+	KeyboardManager m_KeyboardManager{m_Engine};
+	MouseManager m_MouseManager{m_Engine};
 };
 
-struct KeyPressedStatus { bool previousKeyPressed; bool keyPressed; };
 
-class KeyboardManager
-{
-public:
-	void Update(sf::Time dt);
-	bool IsKeyHeld(sf::Keyboard::Key key);
-	bool IsKeyDown(sf::Keyboard::Key key);
-	bool IsKeyUp(sf::Keyboard::Key key);
 
-protected:
-	
-
-private:
-	KeyPressedStatus keyPressedStatusArray[sf::Keyboard::Key::KeyCount] ={};
-};
-
-class MouseManager
-{
-public:
-	sf::Vector2i localPosition(sf::Window& window);
-};
 
 }
 #endif

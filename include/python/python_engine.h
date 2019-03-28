@@ -25,58 +25,86 @@
 #ifndef SFGE_PYENGINE_H
 #define SFGE_PYENGINE_H
 
-#include <engine/engine.h>
-#include <engine/component.h>
+#include <list>
+#include <list>
+
+#include <engine/system.h>
 #include <utility/python_utility.h>
-#include <pybind11/functional.h>
+#include <engine/component.h>
+#include <python/pysystem.h>
 
 namespace sfge
 {
-class PyComponent;
+
+
+struct ColliderData;
+
+using ModuleId = unsigned;
+const ModuleId INVALID_MODULE = 0U;
+
+using InstanceId = unsigned;
+const InstanceId INVALID_INSTANCE = 0U;
+
 /**
 * \brief Manage the python interpreter
 */
-class PythonManager : public Module
+class PythonEngine :
+		public System
 {
 public:
-	using Module::Module;
+	using System::System;
 	/**
 	* \brief Initialize the python interpreter
 	*/
-	void Init() override;
+	void OnEngineInit() override;
+
+
+	void InitScriptsInstances();
 	/**
 	* \brief Update the python interpreter, called only in play mode
 	* \param dt The delta time since last frame
 	*/
-	void Update(sf::Time dt) override;
-
+	void OnUpdate(float dt) override;
+	void OnFixedUpdate() override;
+	void OnDraw() override;
 	/**
 	* \brief Finalize the python interpreter
 	*/
 	void Destroy() override;
 
-	void Collect() override;
-	void Reset() override;
-	/**
-	 * \brief Load a python script and return a python object of it
-	 * \param script_name
-	 * \param gameObject
-	 * \return scriptInstanceId The id of the loaded instance
-	 */
-	unsigned int LoadPyComponentFile(std::string script_path, GameObject* gameObject);
-	/**
-	 * \brief Get a python component object
-	 * \param scriptId
-	 * \return pyComponent PyComponent pointer that interacts with the python
-	 */
-	PyComponent* GetPyComponent(unsigned int scriptInstanceId);
-private:
-	std::map<std::string, unsigned int> pythonModuleIdMap;
-	std::map<unsigned int, py::object> pythonModuleObjectMap;
-	unsigned int incrementalScriptId = 1U;
+	void OnAfterSceneLoad() override;
+	void OnBeforeSceneLoad() override;
 
-	std::map<unsigned int, py::object> pythonInstanceMap;
-	unsigned int incrementalInstanceId = 1U;
+	ModuleId LoadPyModule(std::string moduleFilename);
+
+
+	PySystemManager& GetPySystemManager(){ return m_PySystemManager; }
+
+	void ExecutePythonCommand(std::string pythonCommand);
+
+	const std::string& GetClassNameFrom(ModuleId moduleId);
+	const std::string& GetModuleNameFrom(ModuleId moduleId);
+	const std::string& GetModulePathFrom(ModuleId moduleId);
+	const py::object & GetModuleObjFrom(ModuleId moduleId);
+
+	/*
+	*/
+    void SpreadClasses();
+private:
+	/**
+	 * \brief Load all the python scripts at initialization or reset
+	 */
+	void LoadScripts(std::string dirname = "scripts/");
+
+
+	std::vector<std::string> m_PythonModulePaths{ INIT_ENTITY_NMB * MULTIPLE_COMPONENTS_MULTIPLIER };
+	std::vector<std::string> m_PyClassNames{ INIT_ENTITY_NMB * MULTIPLE_COMPONENTS_MULTIPLIER };
+	std::vector<std::string> m_PyModuleNames{ INIT_ENTITY_NMB * MULTIPLE_COMPONENTS_MULTIPLIER };
+	std::vector<py::object> m_PyModuleObjs{INIT_ENTITY_NMB * MULTIPLE_COMPONENTS_MULTIPLIER};
+
+	ModuleId m_IncrementalModuleId = 1U;
+
+	PySystemManager m_PySystemManager{m_Engine};
 
 };
 

@@ -21,22 +21,41 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
+#include <engine/engine.h>
 #include <engine/scene.h>
 #include <utility/json_utility.h>
+#include <gtest/gtest.h>
 
-int main()
+TEST(Scene, TestSwitchScene)
 {
-	sfge::Engine engine;
-	engine.Init(false, true);
 
-	auto sceneManager = engine.GetSceneManager();
-	sceneManager->SetCurrentScene(sceneManager->LoadSceneFromName("data/scenes/test.scene"));
+	sfge::Engine engine;
+	engine.Init();
+
+	engine.GetSceneManager()->LoadSceneFromPath("data/scenes/test_switch.scene");
 
 
 	engine.Start();
 
-#ifdef WIN32
-	system("pause");
-#endif
-	return EXIT_SUCCESS;
+
+
+}
+
+TEST(Scene, TestSwitchSceneLeak)
+{
+
+	sfge::Engine engine;
+	engine.Init();
+
+
+    engine.GetSceneManager()->LoadSceneFromPath("data/scenes/scene_many_entities.scene");
+
+
+
+
+    engine.Start();
+
+
+
 }

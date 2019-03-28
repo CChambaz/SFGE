@@ -1,6 +1,6 @@
 {
     "name": "SceneTest",
-    "game_objects": [
+    "entities": [
         {
             "name": "SpriteTest",
             "components": [
@@ -17,7 +17,7 @@
                     "layer": 3
                 },
                 {
-                    "type": 4,
+                    "type": 64,
                     "script_path": "scripts/switch_scene.py"
                 }
             ]

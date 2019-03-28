@@ -1,6 +1,6 @@
 {
 	"name": "SceneTest",
-	"game_objects": [
+	"entities": [
 		{
 			"name": "SpriteTest",
 			"components": [

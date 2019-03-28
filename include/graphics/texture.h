@@ -26,7 +26,6 @@ SOFTWARE.
 #define SFGE_TEXTURE_H_
 
 //STL
-#include <map>
 #include <string>
 #include <memory>
 
@@ -34,39 +33,58 @@ SOFTWARE.
 //Externals
 #include <SFML/Graphics.hpp>
 
+
+#include <engine/system.h>
+#include <engine/globals.h>
+
 namespace sfge
 {
+
+using TextureId = unsigned;
+const TextureId INVALID_TEXTURE = 0U;
+
 /**
 * \brief The Texture Manager is the cache of all the textures used for sprites or other objects
 *
 */
-class TextureManager
+class TextureManager : public System
 {
 public:
+	using System::System;
+
+	TextureManager& operator=(const TextureManager&) = delete;
+	/**
+	 * \brief Load all the textures in the data in Shipping mode
+	 */
+	void OnEngineInit() override;
 
 	/**
 	* \brief load the texture from the disk or the texture cache
 	* \param filename The filename string of the texture
 	* \return The strictly positive texture id > 0, if equals 0 then the texture was not loaded
 	*/
-	unsigned int LoadTexture(std::string filename);
+	TextureId LoadTexture(std::string filename);
 	/**
 	* \brief Used after loading the texture in the texture cache to get the pointer to the texture
 	* \param text_id The texture id striclty positive
 	* \return The pointer to the texture in memory
 	*/
-	sf::Texture* GetTexture(unsigned int text_id);
+	sf::Texture* GetTexture(TextureId textureId);
 	
-	void Reset();
+	void OnBeforeSceneLoad() override;
 
-	void Collect();
+	void OnAfterSceneLoad() override;
+
+
 
 private:
+  	bool HasValidExtension(std::string filename);
+	void LoadTextures(std::string dataDirname);
 
-	std::map<std::string, unsigned int> nameIdsMap;
-	std::map<unsigned int, unsigned int> idsRefCountMap;
-	std::map<unsigned int, sf::Texture*> texturesMap;
-	unsigned int incrementId = 0;
+	std::vector<std::string> m_TexturePaths {INIT_ENTITY_NMB * 4};
+	std::vector<sf::Texture> m_Textures { INIT_ENTITY_NMB * 4 };
+	std::vector<size_t> m_TextureIdsRefCounts = std::vector<size_t>(INIT_ENTITY_NMB * 4, 0 );
+	TextureId m_IncrementId = 0U;
 
 };
 }

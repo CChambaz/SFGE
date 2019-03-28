@@ -24,39 +24,59 @@ SOFTWARE.
 
 #ifndef SFGE_CONFIG_H
 #define SFGE_CONFIG_H
-//Externals include
-#include <SFML/System/Vector2.hpp>
-#include <Box2D/Box2D.h>
+
 //STL includes
 #include <list>
 #include <memory>
 
+//Externals include
+#include <SFML/System/Vector2.hpp>
+#include <Box2D/Box2D.h>
+//tool_engine include
+#include <utility/json_utility.h>
+#include <engine/globals.h>
+#include "SFML/Graphics/Color.hpp"
 
 namespace sfge
 {
+
+
+
 /**
 * \brief Used by the Engine to get a Configuration.
 */
-struct Configuration
+struct Configuration 
 {
+	~Configuration();
+	bool devMode = true;
+	bool editor = true;
+	bool windowLess = false;
 	/**
 	 * \brief The screen resolution used for the editor
 	 */
-	sf::Vector2i screenResolution = sf::Vector2i(800, 600);
+	sf::Vector2i screenResolution = sf::Vector2i(1280, 720);
 
 	b2Vec2 gravity = b2Vec2(0.0f, 9.81f);
 	/**
 	 * \brief The limited framerate
 	 */
 	unsigned int maxFramerate = 60;
-	/**
-	 * \brief The list of Scene that can be loaded by the SceneManager
-	 */
-	std::list<std::string> scenesList;
+	float fixedDeltaTime = 0.02f;
+	int velocityIterations = 8;
+	int positionIterations = 2;
+	size_t currentEntitiesNmb = INIT_ENTITY_NMB;
+
+	std::string windowName = "SFGE 1.1";
+	std::string scriptsDirname = "scripts/";
+	std::string dataDirname = "data/";
+
+	sf::Color bgColor = sf::Color::Black;
 	/**
 	* \brief Used to load the overall Configuration of the GameEngine at start
 	*/
-	static std::unique_ptr<Configuration> LoadConfig(std::string configFilename = "data/config.json");
+	static std::unique_ptr<Configuration> LoadConfig(std::string configFilename);
+	static std::unique_ptr<Configuration> LoadConfig(json& configJson);
+
 };
 }
 #endif // !CONFIG_H

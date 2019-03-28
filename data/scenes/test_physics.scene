@@ -1,6 +1,6 @@
 {
 "name": "SceneTest",
-	"game_objects": [
+	"entities": [
 		{
 			"name": "Body1",
 			"components": [
@@ -12,25 +12,25 @@
 				},
 				{
 					"name": "Circle Shape Component",
-					"type": 3,
+					"type": 4,
 					"shape_type": 1,
-					"radius": 50.0
+					"radius": 50
 				},
 				{
 					"name": "Rigidbody",
-					"type": 5,
+					"type": 8,
 					"body_type": 2
 				},
 				{
 					"name": "CircleCollider",
-					"type": 6,
+					"type": 16,
 					"collider_type": 1,
-					"radius": 50.0,
+					"radius": 50,
 					"bouncing": 0.5,
 					"sensor": false
 				},
 				{
-					"type": 4,
+					"type": 64,
 					"script_path": "scripts/collider_test.py"
 				}
 			]
@@ -46,24 +46,24 @@
 				},
 				{
 					"name": "Rectangle Shape Component",
-					"type": 3,
+					"type": 4,
 					"shape_type": 2,
 					"size": [800, 200]
 				},
 				{
 					"name": "Rigidbody",
-					"type": 5,
+					"type": 8,
 					"body_type": 0
 				},
 				{
 					"name": "BoxCollider",
-					"type": 6,
+					"type": 16,
 					"collider_type": 2,
 					"size": [800,200],
 					"sensor": false
 				},
 				{
-					"type": 4,
+					"type": 64,
 					"script_path": "scripts/collider_test.py"
 				}
 			]

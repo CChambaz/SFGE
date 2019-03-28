@@ -22,29 +22,40 @@
  SOFTWARE.
  */
 
-#include <utility/python_utility.h>
-#include <sstream>
-#include <engine/log.h>
 #include <cctype>
+#include <sstream>
 
+#include <utility/python_utility.h>
+#include <utility/log.h>
+
+namespace sfge
+{
 py::object import(const std::string& module, const std::string& path, py::object& globals)
 {
-	{
+	/*{
 		std::ostringstream oss;
-		oss << "Loading python module: "<< module <<" with globals: "<< globals.str().cast<std::string>();
+		oss << "Loading python module: " << module << " with globals: " << py::str(globals).cast<std::string>();
 		sfge::Log::GetInstance()->Msg(oss.str());
-	}
+	}*/
 
-    py::dict locals;
-    locals["module_name"] = py::cast(module); // have to cast the std::string first
-    locals["path"]        = py::cast(path);
+	const py::dict locals;
+	locals["module_name"] = py::cast(module); // have to cast the std::string first
+	locals["file_path"] = py::cast(path);
 
-    py::eval<py::eval_statements>(            // tell eval we're passing multiple statements
-        "import imp\n"
-        "new_module = imp.load_module(module_name, open(path), path, ('py', 'U', imp.PY_SOURCE))\n",
-        globals,
-        locals);
-    return locals["new_module"];
+	/*
+	 *
+	 * "import imp\n"
+		"new_module = imp.load_module(module_name, open(path), path, ('py', 'U', imp.PY_SOURCE))\n",
+	 */
+	py::eval<py::eval_statements>(            // tell eval we're passing multiple statements
+		"import importlib.util\n"
+		"spec = importlib.util.spec_from_file_location(module_name, file_path)\n"
+		"module = importlib.util.module_from_spec(spec)\n"
+		"spec.loader.exec_module(module)\n",
+		globals,
+		locals);
+
+	return locals["module"];
 }
 
 std::string module2class(std::string& module_name)
@@ -55,12 +66,13 @@ std::string module2class(std::string& module_name)
 	std::string class_name;
 	while (std::getline(iss, token, '_'))
 	{
-		if(token.size() > 0)
+		if (!token.empty())
 		{
-			char first = token.at(0);
+			const char first = token.at(0);
 			class_name += std::toupper(first);
 			class_name += token.substr(1, token.size());
 		}
 	}
 	return class_name;
+}
 }

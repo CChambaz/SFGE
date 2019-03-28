@@ -36,8 +36,8 @@ public:
 	bool IsOver();
 	void Reset();
 
-	float GetCurrent();
-	float GetCurrentTime();
+	float GetCurrentRatio();
+	float GetTimeFromStart() const;
 	float GetPeriod() const;
 	void SetPeriod(float period);
 	float GetTime() const;

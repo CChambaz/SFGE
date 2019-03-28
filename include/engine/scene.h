@@ -26,92 +26,79 @@
 #ifndef SFGE_SCENE_H
 #define SFGE_SCENE_H
 
-
+#include <memory>
+#include <string>
 #include <list>
 
-#include <engine/engine.h>
+#include <engine/system.h>
 #include <utility/json_utility.h>
+#include <engine/entity.h>
+
+
 
 namespace sfge
 {
+enum class ComponentType: int;
+class IComponentFactory;
+class PySystem;
 
-class GameObject;
-class Scene;
+namespace editor
+{
+struct SceneInfo;
+}
 
 /**
 * \brief The Scene Manager do the transition between two scenes, read from the Engine Configuration the scenes build list
 */
-class SceneManager : public Module
+class SceneManager : public System
 {
 public:
-	using Module::Module;
-	/**
-	* \brief Initialize the SceneManager, get the Configuration from Engine and save the Scene lists from it
-	*/
-	void Init() override;
-	/**
-	* \brief Update the SceneManager, mostly updating the GameObjects of the current Scene and doing the transition when needed
-	* \param dt Delta time since last frame
-	*/
-	void Update(sf::Time dt) override;
+	SceneManager(Engine& engine);
+	~SceneManager() = default;
+	void OnEngineInit() override;
+
+	void SearchScenes(std::string& dataDirname);
 	/**
 	* \brief Finalize and delete everything created in the SceneManager
 	*/
+	void LoadSceneFromName(const std::string& sceneName);
+	/**
+	* \brief Load a Scene and create all its GameObject
+	* \param scenePath the scene path given by the configuration
+	* \return the heap Scene that is automatically destroyed when not used
+	*/
+	void LoadSceneFromPath(const std::string& scenePath);
+	/**
+	* \brief Load a Scene and create all its GameObject
+	* \param sceneName the scene path given by the configuration
+	* \return the heap Scene that is automatically destroyed when not used
+	*/
+	void LoadSceneFromJson(json& sceneJson, std::unique_ptr<editor::SceneInfo> sceneInfo = nullptr);
+	/**
+	 * \brief Return a list of all the scenes available in the data folder, pretty useful for python and the editor
+	 * \return the list of scenes in the data folder
+	 */
+	std::list<std::string> GetAllScenes();
+
+	void AddComponentManager(IComponentFactory* componentFactory, ComponentType componentType);
+
+	void OnUpdate(float dt) override;
+	void OnFixedUpdate() override;
+	void OnDraw() override;
 	void Destroy() override;
-	void LoadScene(std::string sceneName);
-	/**
-	* \brief Load a Scene and create all its GameObject
-	* \param sceneName the scene path given by the configuration
-	* \return the heap Scene that is automatically destroyed when not used
-	*/
-	std::shared_ptr<Scene> LoadSceneFromName(std::string sceneName);
-	/**
-	* \brief Load a Scene and create all its GameObject
-	* \param sceneName the scene path given by the configuration
-	* \return the heap Scene that is automatically destroyed when not used
-	*/
-	std::shared_ptr<Scene> LoadSceneFromJson(json& sceneJson);
 
-	void SetCurrentScene(std::string sceneName);
-
-	void SetCurrentScene(std::shared_ptr<Scene> scene);
-
-	void Reset() override;
-	void Collect() override;
-	bool IsSwitching();
-	std::shared_ptr<Scene> GetCurrentScene();
+	void OnBeforeSceneLoad() override;
+	std::vector<PySystem*>& GetSceneSystems();
 private:
-	std::shared_ptr<Scene> m_PreviousScene = nullptr;
-	std::shared_ptr<Scene> m_CurrentScene = nullptr;
-	//std::list<std::shared_ptr<Scene>> m_Scenes;
 
-	bool m_Switching = false;
-};
+	void InitScenePySystems();
 
-/**
-* \brief The Scene includes GameObjects that are loaded from a JSON file
-*
-*/
-class Scene
-{
-public:
-	Scene(SceneManager* sceneManager);
-	/**
-	* \brief Update the Scene, mostly updating the GameObjects and doing the transition when needed
-	* \param dt Delta time since last frame
-	*/
-	void Update(sf::Time dt);
-	/**
-	* \brief Destroy all the GameObjects of the scene
-	*/
-	~Scene();
+	std::vector<PySystem*> m_ScenePySystems;
+	EntityManager* m_EntityManager = nullptr;
+	std::vector<IComponentFactory*> m_ComponentManager{sizeof(ComponentType)*8};
+	std::map<std::string, std::string> m_ScenePathMap;
 
-	std::list<GameObject*>& GetGameObjects();
-protected:
-	std::string name;
-	std::list<GameObject*> m_GameObjects;
-	SceneManager* m_SceneManager;
-	friend class SceneManager;
 };
 }
+
 #endif

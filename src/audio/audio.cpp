@@ -24,111 +24,51 @@ SOFTWARE.
 
 #include <audio/audio.h>
 #include <audio/sound.h>
-#include <iostream>
-#include <utility/file_utility.h>
-#include <engine/log.h>
 
 namespace sfge
 {
-
-AudioManager::AudioManager(Engine& engine, bool enable) : Module(engine, enable)
+void AudioManager::OnEngineInit()
 {
-	engine = m_Engine;
-	enable = m_Enable;
-}
-void AudioManager::Init()
-{
-
+	m_SoundManager.OnEngineInit();
+	m_SoundBufferManager.OnEngineInit();
+	
 };
-void AudioManager::Update(sf::Time dt)
+void AudioManager::OnUpdate(float dt)
 {
-
+	(void)dt;
 };
 
-SoundManager*  AudioManager::GetSoundManager()
+SoundManager* AudioManager::GetSoundManager()
 {
 	return &m_SoundManager;
 }
 
-MusicManager*  AudioManager::GetMusicManager()
+MusicManager* AudioManager::GetMusicManager()
 {
 	return &m_MusicManager;
 }
-void AudioManager::Reset()
+
+SoundBufferManager* AudioManager::GetSoundBufferManager()
 {
-	m_SoundManager.Reset();
+	return &m_SoundBufferManager;
 }
 
-void AudioManager::Collect()
+void AudioManager::OnBeforeSceneLoad()
 {
-	m_SoundManager.Collect();
+	m_SoundManager.OnBeforeSceneLoad();
+}
+
+void AudioManager::OnAfterSceneLoad()
+{
+	m_SoundManager.OnAfterSceneLoad();
 }
 void AudioManager::Destroy()
 {
-	Reset();
-	Collect();
+	OnBeforeSceneLoad();
+	OnAfterSceneLoad();
 }
 
-MusicManager::MusicManager()
-{
-}
-unsigned int MusicManager::LoadMusic(std::string filename)
-{
-	if (musicPathId.find(filename) != musicPathId.end())
-	{
-		auto musicId = musicPathId[filename];
-		auto checkMusic = musicMap.find(musicId);
 
-		if (checkMusic != musicMap.end())
-		{
-			std::cout << "music return";
-			return musicPathId[filename];
-		}
-		else
-		{
-			std::shared_ptr<sf::Music> music = std::make_shared<sf::Music>();
-			if (!music->openFromFile(filename))
-			{
-				std::cout << "music not open from file";
-				return 0U;
-			}
-			musicPathId[filename] = incrementId;
-			musicMap[incrementId] = music;
-			return incrementId;
-		}
-	}
-	else
-	{
-		if (FileExists(filename))
-		{
-			incrementId++;
-			auto music = std::make_shared<sf::Music>();
-
-			if (!music->openFromFile(filename))
-			{
-				std::cout << "music not open from file but exist";
-				return 0U;
-			}
-			musicPathId[filename] = incrementId;
-			musicMap[incrementId] = music;
-			return incrementId;
-		}
-	}
-	return 0U;
-}
-
-std::shared_ptr<sf::Music> MusicManager::GetMusic(unsigned int musicId)
-{
-	if (musicMap.find(musicId) != musicMap.end())
-	{
-		return musicMap[musicId];
-	}
-	return nullptr;
-}
-
-MusicManager::~MusicManager()
-{
-}
 
 
 
