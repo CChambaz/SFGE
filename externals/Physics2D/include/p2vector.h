@@ -32,17 +32,20 @@ struct p2Vec3;
 */
 struct p2Vec2
 {
+
 	p2Vec2();
 
 	p2Vec2(float x, float y);
+	bool operator==(const p2Vec2 &rhs) const;
+	bool operator!=(const p2Vec2 &rhs) const;
 
-	p2Vec2 operator+(p2Vec2 v);
-	p2Vec2 operator+=(p2Vec2 v);
-	p2Vec2 operator-(p2Vec2 v);
-	p2Vec2 operator-=(p2Vec2 v);
-	p2Vec2 operator*=(float f);
-	p2Vec2 operator /(float f);
-	p2Vec2 operator *(float f);
+	p2Vec2 operator+(const p2Vec2& v)const;
+	p2Vec2& operator+=(const p2Vec2& v);
+	p2Vec2 operator-(const p2Vec2& v) const;
+	p2Vec2& operator-=(const p2Vec2& v);
+	p2Vec2& operator*=(float f);
+	p2Vec2 operator /(float f) const;
+	p2Vec2 operator *(float f) const;
 	/**
 	* \brief Dot product of two vectors
 	*/
@@ -83,11 +86,12 @@ struct p2Vec3
 	p2Vec3();
 	p2Vec3(float x, float y, float z);
 
-	p2Vec3 operator+(p2Vec3 v) const;
-	p2Vec3 operator+=(p2Vec3 v) const;
-	p2Vec3 operator-(p2Vec3 v) const;
-	p2Vec3 operator-=(p2Vec3 v) const;
-	p2Vec3 operator*=(float f);
+
+	p2Vec3 operator+(const p2Vec3& v) const;
+	p2Vec3& operator+=(const p2Vec3 & v);
+	p2Vec3 operator-(const p2Vec3& v) const;
+	p2Vec3& operator-=(const p2Vec3& v);
+	p2Vec3& operator*=(float f);
 	p2Vec3 operator /(float f) const;
 	p2Vec3 operator *(float f) const;
 	/**

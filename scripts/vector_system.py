@@ -30,5 +30,19 @@ class VectorSystem(System):
 
         graphics2d_manager.draw_vector(self.v, Vec2f(400,400), Color.Green)
         graphics2d_manager.draw_vector(self.u, Vec2f(400,400), Color.Green)
+        self.result = Physics2dManager.meter2pixel(
+            self.pu * p2Vec2.dot(self.pu, self.pv) / p2Vec2.dot(self.pv, self.pv))
         graphics2d_manager.draw_vector(self.result,
                                        Vec2f(400, 400), Color.Red)
+        self.result = Physics2dManager.meter2pixel(
+            self.pu + self.pv)
+        graphics2d_manager.draw_vector(self.v, Vec2f(600,400), Color.Green)
+        graphics2d_manager.draw_vector(self.u, Vec2f(600,400), Color.Green)
+        graphics2d_manager.draw_vector(self.result,
+                                       Vec2f(600, 400), Color.Red)
+        self.result = Physics2dManager.meter2pixel(
+            self.pu - self.pv)
+        graphics2d_manager.draw_vector(self.v, Vec2f(600, 200), Color.Green)
+        graphics2d_manager.draw_vector(self.u, Vec2f(600, 200), Color.Green)
+        graphics2d_manager.draw_vector(self.result,
+                                       Vec2f(600, 200), Color.Red)
