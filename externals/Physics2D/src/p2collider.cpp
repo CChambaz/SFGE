@@ -2,25 +2,36 @@
 
 p2Collider::p2Collider(p2ColliderDef colDef)
 {
-	colliderDefinition = colDef;
+	m_UserData = colDef.userData;
 }
+
+p2Collider::p2Collider()
+{
+	
+}
+
 
 bool p2Collider::IsSensor() const
 {
-	return colliderDefinition.isSensor;
+	return m_ColliderDefinition.isSensor;
 }
 
 void * p2Collider::GetUserData() const
 {
-	return userData;
+	return m_UserData;
 }
 
 p2Shape* p2Collider::GetShape() const
 {
-	return colliderDefinition.shape;
+	return m_ColliderDefinition.shape;
+}
+
+float p2Collider::GetRestitution() const
+{
+	return m_ColliderDefinition.restitution;
 }
 
 void p2Collider::SetUserData(void* colliderData)
 {
-	userData = colliderData;
+	m_UserData = colliderData;
 }

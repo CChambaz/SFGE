@@ -32,8 +32,10 @@ SOFTWARE.
 */
 struct p2AABB
 {
-	p2Vec2 bottomLeft;
-	p2Vec2 topRight;
+	p2AABB(p2Vec2 bottomLeft, p2Vec2 topRight);
+	p2AABB();
+	p2Vec2 m_BottomLeft;
+	p2Vec2 m_TopRight;
 
 	/**
 	* \brief Calculate the center and return it

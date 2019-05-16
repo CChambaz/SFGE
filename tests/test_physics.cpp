@@ -58,6 +58,7 @@ TEST(Physics, TestBallFallingToGround)
 	rigidBodyJson1["name"] = "Rigidbody";
 	rigidBodyJson1["type"] = sfge::ComponentType::BODY2D;
 	rigidBodyJson1["body_type"] = p2BodyType::DYNAMIC;
+	rigidBodyJson1["velocity"] = { 0.0f, 0.0f };
 
 	json circleColliderJson;
 	circleColliderJson["name"] = "Circle Collider";

@@ -26,7 +26,7 @@ SOFTWARE.
 
 p2CircleShape::p2CircleShape(float radius) : p2Shape()
 {
-	type = ShapeType::CIRCLE;
+	m_Type = ShapeType::CIRCLE;
 	m_Radius = radius;
 }
 
@@ -37,7 +37,7 @@ void p2CircleShape::SetRadius(float radius)
 
 p2RectShape::p2RectShape(p2Vec2 size)
 {
-	type = ShapeType::RECT;
+	m_Type = ShapeType::RECT;
 	m_Size = size;
 }
 

@@ -48,6 +48,8 @@ class p2Collider
 {
 public:
 	p2Collider(p2ColliderDef colDef);
+
+	p2Collider();
 	/**
 	* \brief Check if the p2Collider is a sensor
 	*/
@@ -57,10 +59,12 @@ public:
 	*/
 	void* GetUserData() const;
 	p2Shape* GetShape() const;
+	float GetRestitution() const;
 	void SetUserData(void* colliderData);
 private:
-	void* userData = nullptr;
-	p2ColliderDef colliderDefinition;
+	void* m_UserData = nullptr;
+	p2Shape m_Shape;
+	p2ColliderDef m_ColliderDefinition;
 };
 
 

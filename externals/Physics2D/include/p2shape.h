@@ -26,6 +26,9 @@ SOFTWARE.
 #define SFGE_P2SHAPE_H
 
 #include <p2vector.h>
+#include <SFML/Graphics/Shape.hpp>
+#include "SFML/Graphics/RectangleShape.hpp"
+#include "SFML/Graphics/CircleShape.hpp"
 
 enum ShapeType
 {
@@ -38,7 +41,7 @@ enum ShapeType
 class p2Shape
 {
 public:
-	ShapeType type;
+	ShapeType m_Type;
 };
 
 /**

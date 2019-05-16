@@ -163,7 +163,7 @@ void Body2dManager::OnFixedUpdate()
 		{
 			auto & transform = m_Transform2dManager->GetComponentRef(entity);
 			auto & body2d = GetComponentRef(entity);
-			m_ComponentsInfo[i].AddVelocity(body2d.GetLinearVelocity());
+			m_ComponentsInfo[i].AddVelocity(body2d.GetBody()->GetLinearVelocity());
 			transform.Position = meter2pixel(body2d.GetBody()->GetPosition()) - static_cast<sf::Vector2f>(body2d.GetOffset());
 		}
 	}

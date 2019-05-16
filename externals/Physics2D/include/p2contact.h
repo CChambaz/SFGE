@@ -33,8 +33,12 @@ SOFTWARE.
 class p2Contact
 {
 public:
+	p2Contact(p2Collider* col1, p2Collider* col2);
 	p2Collider* GetColliderA();
 	p2Collider* GetColliderB();
+private:
+	p2Collider* m_ColliderA;
+	p2Collider* m_ColliderB;
 };
 
 /**
@@ -52,6 +56,14 @@ public:
 */
 class p2ContactManager
 {
-
+public:
+	void CreateContact(p2Collider* colliderA, p2Collider* colliderB);
+	p2Contact* GetContact(p2Collider* colliderA, p2Collider* colliderB);
+	void ApplyContacts(p2ContactListener* contactListener);
+	void EndContacts(p2ContactListener* contactListener);
+	void DestroyContacts();
+private:
+	std::vector<p2Contact> m_Contacts;
+	int m_ContactIndex;
 };
 #endif

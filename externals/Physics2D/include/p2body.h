@@ -67,6 +67,19 @@ public:
 	float GetAngularVelocity();
 	
 	p2Vec2 GetPosition();
+
+	// Get the minimum and maximum position based on the AABB
+	p2Vec2 GetMinPosition();
+	p2Vec2 GetMaxPosition();
+
+	p2Vec2 GetAABBExtends();
+
+	// Get the main collider
+	p2Collider* GetCollider();
+
+	// Get all the colliders
+	std::vector<p2Collider>* GetColliders();
+
 	/**
 	* \brief Factory method creating a p2Collider
 	* \param colliderDef p2ColliderDef definition of the collider
@@ -78,10 +91,12 @@ public:
 	p2BodyType GetType() const;
 	float GetMass() const;
 private:
-	p2AABB aabb;
-	p2Vec2 position;
-	p2Vec2 linearVelocity;
-	float angularVelocity;
+	p2AABB m_AABB;
+	p2Vec2 m_Position;
+	p2Vec2 m_LinearVelocity;
+	p2BodyType m_Type;
+	float m_GravityScale;
+	float m_AngularVelocity;
 
 	int m_ColliderIndex = 0;
 	std::vector<p2Collider> m_Colliders;
