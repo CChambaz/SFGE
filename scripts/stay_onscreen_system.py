@@ -11,14 +11,20 @@ class StayOnscreenSystem(System):
     def fixed_update(self):
         config = engine.config
         screen_size = config.screen_size
+        graphics2d_manager.draw_line(Vec2f(screen_size.x, screen_size.y), Vec2f(0,0), Color.Green)
         for entity in self.bodies_entites:
             transform = transform2d_manager.get_component(entity)
             body: Body2d = physics2d_manager.body2d_manager.get_component(entity)
 
             position = transform.position
             if (position.x < 0 and body.velocity.x < 0) or (position.x > screen_size.x and body.velocity.x > 0):
-                body.velocity = b2Vec2(-body.velocity.x, body.velocity.y)
+                body.velocity = p2Vec2(-body.velocity.x, body.velocity.y)
             if (position.y < 0 and body.velocity.y < 0) or (position.y > screen_size.y and body.velocity.y > 0):
-                body.velocity = b2Vec2(body.velocity.x, -body.velocity.y)
+                body.velocity = p2Vec2(body.velocity.x, -body.velocity.y)
+
+    def on_draw(self):
+        config = engine.config
+        screen_size = config.screen_size
+        graphics2d_manager.draw_line(Vec2f(0, screen_size.y), Vec2f(screen_size.x, 0), Color.Green)
 
 

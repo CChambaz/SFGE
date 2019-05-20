@@ -79,7 +79,8 @@ std::vector<p2Collider>* p2Body::GetColliders()
 
 p2Collider * p2Body::CreateCollider(p2ColliderDef * colliderDef)
 {
-	p2Collider& collider = m_Colliders[m_ColliderIndex];
+	p2Collider collider = p2Collider(*colliderDef);
+	m_Colliders.push_back(collider);
 	m_ColliderIndex++;
 	return &collider;
 }

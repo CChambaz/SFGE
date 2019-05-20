@@ -57,11 +57,11 @@ public:
 class p2ContactManager
 {
 public:
-	void CreateContact(p2Collider* colliderA, p2Collider* colliderB);
-	p2Contact* GetContact(p2Collider* colliderA, p2Collider* colliderB);
-	void ApplyContacts(p2ContactListener* contactListener);
-	void EndContacts(p2ContactListener* contactListener);
-	void DestroyContacts();
+	p2Contact* CreateContact(p2Collider* colliderA, p2Collider* colliderB);
+	int GetContactID(p2Collider* colliderA, p2Collider* colliderB);
+	p2Contact* GetContactByID(int contactID);
+	void DestroyContact(p2Collider* colliderA, p2Collider* colliderB);
+	void DestroyContact(int contactID);
 private:
 	std::vector<p2Contact> m_Contacts;
 	int m_ContactIndex;

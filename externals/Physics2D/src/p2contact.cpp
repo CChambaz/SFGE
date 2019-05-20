@@ -40,21 +40,26 @@ p2Collider * p2Contact::GetColliderB()
 	return m_ColliderB;
 }
 
-void p2ContactManager::CreateContact(p2Collider* colliderA, p2Collider* colliderB)
+p2Contact* p2ContactManager::CreateContact(p2Collider* colliderA, p2Collider* colliderB)
 {
 	// Try to get the contact composed with the given colliders
-	p2Contact* checkContact = GetContact(colliderA, colliderB);
+	int checkContact = GetContactID(colliderA, colliderB);
 
 	// Check if a contact has been found
-	if (checkContact != nullptr)
-		return;
+	if (checkContact != -1)
+		return nullptr;
 
 	// Create the contact
-	m_Contacts.emplace_back(colliderA, colliderB);
+	p2Contact contact = p2Contact(colliderA, colliderB);
+
+	m_Contacts.push_back(contact);
 	m_ContactIndex++;
+
+	// Return the newly created contact
+	return &contact;
 }
 
-p2Contact* p2ContactManager::GetContact(p2Collider* colliderA, p2Collider* colliderB)
+int p2ContactManager::GetContactID(p2Collider* colliderA, p2Collider* colliderB)
 {
 	for (int i = 0; i < m_ContactIndex; i++)
 	{
@@ -65,34 +70,40 @@ p2Contact* p2ContactManager::GetContact(p2Collider* colliderA, p2Collider* colli
 		// Check if the contact's colliders are the same as the function parameters
 		if((colA == colliderA && colB == colliderB) || (colA == colliderB && colB == colliderA))
 		{
-			return &m_Contacts[i];
+			return i;
 		}
 	}
 
 	// Contact does not exist
-	return nullptr;
+	return -1;
 }
 
-void p2ContactManager::ApplyContacts(p2ContactListener* contactListener)
+p2Contact* p2ContactManager::GetContactByID(int contactID)
 {
-	for(int i = 0; i < m_ContactIndex; i++)
-	{
-		contactListener->BeginContact(&m_Contacts[i]);
-	}
+	return &m_Contacts[contactID];
 }
 
-void p2ContactManager::EndContacts(p2ContactListener* contactListener)
+void p2ContactManager::DestroyContact(p2Collider* colliderA, p2Collider* colliderB)
 {
 	for (int i = 0; i < m_ContactIndex; i++)
 	{
-		contactListener->EndContact(&m_Contacts[i]);
+		// Get the colliders of the current contact
+		p2Collider* colA = m_Contacts[i].GetColliderA();
+		p2Collider* colB = m_Contacts[i].GetColliderB();
+
+		// Check if the contact's colliders are the same as the function parameters
+		if ((colA == colliderA && colB == colliderB) || (colA == colliderB && colB == colliderA))
+		{
+			m_Contacts.erase(m_Contacts.begin() + i);
+			m_ContactIndex--;
+			return;
+		}
 	}
 }
 
-void p2ContactManager::DestroyContacts()
+void p2ContactManager::DestroyContact(int contactID)
 {
-	m_Contacts.clear();
-	m_ContactIndex = 0;
+	m_Contacts.erase(m_Contacts.begin() + contactID);
+	m_ContactIndex--;
 }
-
 

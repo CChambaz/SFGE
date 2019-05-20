@@ -28,8 +28,7 @@ SOFTWARE.
 #include <p2vector.h>
 #include <p2body.h>
 #include <p2contact.h>
-#include "p2quadtree.h"
-#include "engine/engine.h"
+#include <p2quadtree.h>
 
 const size_t MAX_BODY_LEN = 256;
 
@@ -39,7 +38,7 @@ const size_t MAX_BODY_LEN = 256;
 class p2World
 {
 public:
-	p2World(p2Vec2 gravity, sfge::Engine* engine);
+	p2World(p2Vec2 gravity, p2Vec2 screenResolution);
 	/**
 	* \brief Simulate a new step of the physical world, simplify the resolution with a QuadTree, generate the new contacts
 	*/
@@ -53,7 +52,7 @@ public:
 	*/
 	void SetContactListener(p2ContactListener* contactListener);
 private:
-	sfge::Engine* m_Engine;
+	p2Vec2 m_ScreenResolution;
 	p2Vec2 m_Gravity;
 	std::vector<p2Body> m_Bodies;
 	p2QuadTree m_ParentQuad;

@@ -25,14 +25,12 @@ SOFTWARE.
 #include <iostream>
 
 
-p2World::p2World(p2Vec2 gravity, sfge::Engine* engine)
+p2World::p2World(p2Vec2 gravity, p2Vec2 screenResolution)
 {
 	m_Gravity = gravity;
-	m_Engine = engine;
+	m_ScreenResolution = screenResolution;
 
-	p2Vec2 screenResolution = { engine->GetConfig()->screenResolution.x, engine->GetConfig()->screenResolution.y };
-
-	m_ParentQuad = p2QuadTree(0, p2AABB((screenResolution / 2) * -1, screenResolution / 2));
+	m_ParentQuad = p2QuadTree(0, p2AABB({ 0.0f, screenResolution.y }, { screenResolution.x, 0.0f }));
 	m_ContactManager = p2ContactManager();
 
 	m_Bodies.resize(MAX_BODY_LEN);
@@ -40,12 +38,6 @@ p2World::p2World(p2Vec2 gravity, sfge::Engine* engine)
 
 void p2World::Step(float dt)
 {
-	// Reset the quadtree
-	m_ParentQuad.Clear();
-
-	// Clear the contacts
-	m_ContactManager.DestroyContacts();
-
 	// TODO: Review the forces calculation and application
 	for (int i = 0; i < m_BodyIndex; i++)
 	{
@@ -75,8 +67,11 @@ void p2World::Step(float dt)
 	{
 		returnedBodies.clear();
 
-		// Get the bodies that could collide with the current body
-		m_ParentQuad.Retrieve(returnedBodies, &m_Bodies[i]);
+		// Get the collider of the current body
+		p2Collider* currentCollider = m_Bodies[i].GetCollider();
+
+		// Define the shape of the current body
+		ShapeType* currentType = &currentCollider->GetShape()->m_Type;
 
 		// Get the center of the current AABB
 		const p2Vec2 currentAABBCenter = m_Bodies[i].GetPosition();		
@@ -95,12 +90,21 @@ void p2World::Step(float dt)
 		// Define the radius of the circle surrounding the current AABB
 		const float currentAABBRadius = (currentAABBTopRight - currentAABBCenter).GetMagnitude();
 
-		// Go through the returned bodies and check for collision
+		// Get the bodies that could collide with the current body
+		returnedBodies = m_ParentQuad.Retrieve(returnedBodies, &m_Bodies[i]);
+		std::cout << "Retrieved bodies : " << returnedBodies.size() << "\n";
+		// Go through the retrieved bodies and check for collision
 		for(int j = 0; j < returnedBodies.size(); j++)
 		{
+			// Get the collider of the checked body
+			p2Collider* checkedCollider = returnedBodies[i]->GetCollider();
+
+			// Define the shape of the checked body
+			ShapeType* checkedType = &checkedCollider->GetShape()->m_Type;
+
 			// Get the position and top right point of the checked body
-			const p2Vec2 checkedAABBCenter = m_Bodies[i].GetPosition();
-			const p2Vec2 checkedAABBTopRight = m_Bodies[i].GetMaxPosition();
+			const p2Vec2 checkedAABBCenter = returnedBodies[j]->GetPosition();
+			const p2Vec2 checkedAABBTopRight = returnedBodies[j]->GetMaxPosition();
 
 			// Define the radius of the circle surrounding the checked AABB
 			const float checkedAABBRadius = (checkedAABBTopRight - checkedAABBCenter).GetMagnitude();
@@ -110,8 +114,27 @@ void p2World::Step(float dt)
 
 			// Check if the sum of the two radius is greater than the distance between the two bodies
 			if (distanceBetweenAABB <= currentAABBRadius + checkedAABBRadius)
-			{
+			{	
+				bool collisionResult = true;
+
 				//TODO: SAT
+				// Define the type of shape colliding
+				if(*currentType == ShapeType::CIRCLE && *checkedType == ShapeType::CIRCLE)
+				{
+					// Circle v Circle collision
+
+					// Point of collision : 
+				}
+				else if((*currentType == ShapeType::CIRCLE || *checkedType == ShapeType::CIRCLE) && 
+						(*currentType == ShapeType::RECT || *checkedType == ShapeType::RECT))
+				{
+					// Circle v Rect collision
+				}
+				else if(*currentType == ShapeType::RECT && *checkedType == ShapeType::RECT)
+				{
+					// Rect v Rect collision
+				}
+				
 				// Get the bottom left point of the checked body
 				/*const p2Vec2 currentAABBBottomLeft = m_Bodies[i].GetMinPosition();
 
@@ -121,17 +144,37 @@ void p2World::Step(float dt)
 				// Define the top left and bottom right point of the checked AABB
 				const p2Vec2 currentAABBBottomRight = { currentAABBTopRight.x, currentAABBTopRight.y - currentAABBExtends.y };
 				const p2Vec2 currentAABBTopLeft = { currentAABBBottomLeft.x, currentAABBBottomLeft.y + currentAABBExtends.y };*/
-			}			
+
+				// SAT success
+				if(collisionResult)
+				{
+					// Create the contact
+					p2Contact* contact = m_ContactManager.CreateContact(currentCollider, checkedCollider);
+
+					// Apply the contact if the contact is a new one
+					if (contact != nullptr)
+					{
+						m_ContactListener->BeginContact(contact);
+
+						// TODO: Apply the collision forces
+					}					
+
+					// Move to the next body
+					continue;
+				}
+			}
+
+			// Try to get a contact between the two actual bodies
+			int contactID = m_ContactManager.GetContactID(currentCollider, checkedCollider);
+
+			// If the bodies where in contact before, end it and destroy it
+			if (contactID != -1)
+			{
+				m_ContactListener->EndContact(m_ContactManager.GetContactByID(contactID));
+				m_ContactManager.DestroyContact(contactID);
+			}
 		}
-	}
-
-	// Apply contact
-	m_ContactManager.ApplyContacts(m_ContactListener);
-
-	// TODO: Apply collision 
-
-	// End the contact
-	m_ContactManager.ApplyContacts(m_ContactListener);
+	}	
 
 	// Reset the quatree
 	m_ParentQuad.Clear();

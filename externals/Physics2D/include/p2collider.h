@@ -34,7 +34,7 @@ SOFTWARE.
 */
 struct p2ColliderDef
 {
-	void* userData;
+	sfge::ColliderData* userData;
 	p2Shape* shape;
 	float restitution;
 	bool isSensor = false;
@@ -57,12 +57,12 @@ public:
 	/**
 	* \brief Return the userData
 	*/
-	void* GetUserData() const;
+	sfge::ColliderData* GetUserData() const;
 	p2Shape* GetShape() const;
 	float GetRestitution() const;
-	void SetUserData(void* colliderData);
+	void SetUserData(sfge::ColliderData* colliderData);
 private:
-	void* m_UserData = nullptr;
+	sfge::ColliderData* m_UserData = nullptr;
 	p2Shape m_Shape;
 	p2ColliderDef m_ColliderDefinition;
 };
