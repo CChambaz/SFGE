@@ -47,8 +47,8 @@ private:
 class p2ContactListener
 {
 public:
-	virtual void BeginContact(p2Contact* contact) = 0;
-	virtual void EndContact(p2Contact* contact) = 0;
+	virtual void BeginContact(p2Contact contact) = 0;
+	virtual void EndContact(p2Contact contact) = 0;
 };
 
 /**
@@ -60,6 +60,7 @@ public:
 	p2Contact* CreateContact(p2Collider* colliderA, p2Collider* colliderB);
 	int GetContactID(p2Collider* colliderA, p2Collider* colliderB);
 	p2Contact* GetContactByID(int contactID);
+	std::vector<p2Contact>* GetContacts();
 	void DestroyContact(p2Collider* colliderA, p2Collider* colliderB);
 	void DestroyContact(int contactID);
 private:

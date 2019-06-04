@@ -1,4 +1,5 @@
 #include "..\include\p2quadtree.h"
+#include <iostream>
 
 p2QuadTree::p2QuadTree()
 {
@@ -10,6 +11,7 @@ p2QuadTree::p2QuadTree(int nodeLevel, p2AABB bounds)
 	// Set base values
 	m_NodeLevel = nodeLevel;
 	m_Bounds = bounds;
+	m_Nodes.reserve(CHILD_TREE_NMB);
 }
 
 p2QuadTree::~p2QuadTree()
@@ -25,27 +27,25 @@ void p2QuadTree::Clear()
 	for (int i = 0; i < CHILD_TREE_NMB; i++)
 	{
 		// Check if the child quadtree exist
-		if(m_Nodes[i] != nullptr)
+		if(m_Nodes.size() > 0)
 		{ 
 			// Clear the child quadtree
-			m_Nodes[i]->Clear();
-
-			// Delete the child quadtree
-			m_Nodes[i] = nullptr;
+			m_Nodes[i].Clear();
 		}
 	}
+
+	// Delete the child quadtree
+	m_Nodes.clear();
 }
 
 void p2QuadTree::Split()
 {
-	// Define the corners of the current node
-	const p2Vec2 extends = m_Bounds.GetExtends();
-
 	// Set the current position
 	p2Vec2 currentPosition = m_Bounds.m_BottomLeft;
 
 	// Define the size of the child sides depending on the amount of child tree number
-	const float childSideSize = (m_Bounds.m_TopRight.y - currentPosition.y) / sqrt(CHILD_TREE_NMB);
+	const float childSideSizeX = (m_Bounds.m_TopRight.x - currentPosition.x) / sqrt(CHILD_TREE_NMB);
+	const float childSideSizeY = ((m_Bounds.m_TopRight.y - currentPosition.y) / sqrt(CHILD_TREE_NMB)) * -1;
 
 	for (int i = 0; i < CHILD_TREE_NMB; i++)
 	{
@@ -53,16 +53,16 @@ void p2QuadTree::Split()
 
 		childAABB.m_BottomLeft = currentPosition;
 
-		childAABB.m_TopRight = { currentPosition.x + childSideSize, currentPosition.y + childSideSize };
+		childAABB.m_TopRight = { currentPosition.x + childSideSizeX, currentPosition.y - childSideSizeY };
 
 		// Check if it needs to jump on the y axis
-		if (currentPosition.x + childSideSize >= extends.x)
-			currentPosition = { m_Bounds.m_BottomLeft.x, currentPosition.y + childSideSize };
+		if (currentPosition.x + childSideSizeX >= m_Bounds.m_TopRight.x)
+			currentPosition = { m_Bounds.m_BottomLeft.x, currentPosition.y - childSideSizeY };
 		else
-			currentPosition.x = currentPosition.x + childSideSize;
+			currentPosition.x = currentPosition.x + childSideSizeX;
 
 		// Add the node to the child array
-		m_Nodes[i] = new p2QuadTree(m_NodeLevel + 1, childAABB);
+		m_Nodes.push_back(p2QuadTree(m_NodeLevel + 1, childAABB));
 	}
 }
 
@@ -72,15 +72,15 @@ int p2QuadTree::GetIndex(p2Body * rect)
 	const p2Vec2 quadCenter = m_Bounds.GetCenter();
 
 	// Get the maximum and minimum position of the rect
-	const p2Vec2 rectMin = rect->GetMinPosition();
-	const p2Vec2 rectMax = rect->GetMaxPosition();
+	p2Vec2 rectMin = rect->GetMinPosition() * 100;
+	p2Vec2 rectMax = rect->GetMaxPosition() * 100;
 
 	// Define if the body is on the left
 	const bool onLeft = rectMax.x < quadCenter.x;
 	const bool onRight = rectMin.x > quadCenter.x;
 
 	// Check if completely on the bottom part of the quadtree
-	if (rectMax.y < quadCenter.y)
+	if (rectMax.y > quadCenter.y)
 	{
 		if (onLeft)
 			return 0;
@@ -89,7 +89,7 @@ int p2QuadTree::GetIndex(p2Body * rect)
 			return 1;
 	}
 	// Check if completely on the top part of the quadtree
-	else if (rectMin.y > quadCenter.y)
+	else if (rectMin.y < quadCenter.y)
 	{
 		if (onLeft)
 			return 2;
@@ -105,7 +105,7 @@ int p2QuadTree::GetIndex(p2Body * rect)
 void p2QuadTree::Insert(p2Body * obj)
 {
 	// Check if the split has already be made
-	if(m_Nodes[0] != nullptr)
+	if(m_Nodes.size() > 0)
 	{
 		// Get the index of the child quadtree where the body belongs to
 		int bodyIndex = GetIndex(obj);
@@ -114,7 +114,7 @@ void p2QuadTree::Insert(p2Body * obj)
 		if(bodyIndex != -1)
 		{
 			// Add the body to the corresponding child quadtree
-			m_Nodes[bodyIndex]->Insert(obj);
+			m_Nodes[bodyIndex].Insert(obj);
 
 			return;
 		}
@@ -127,7 +127,7 @@ void p2QuadTree::Insert(p2Body * obj)
 	if(m_Objects.size() > MAX_OBJECTS && m_NodeLevel < MAX_LEVELS)
 	{
 		// Check if the quadtree has already been splited
-		if (m_Nodes[0] == nullptr)
+		if (m_Nodes.size() == 0)
 			Split();
 
 		int i = 0;
@@ -142,7 +142,7 @@ void p2QuadTree::Insert(p2Body * obj)
 			if (bodyIndex != -1)
 			{
 				// Add the body to the corresponding child quadtree
-				m_Nodes[bodyIndex]->Insert(m_Objects[i]);
+				m_Nodes[bodyIndex].Insert(m_Objects[i]);
 
 				// Remove the body from the parent
 				m_Objects.erase(m_Objects.begin() + i);
@@ -162,14 +162,35 @@ std::vector<p2Body*> p2QuadTree::Retrieve(std::vector<p2Body*> returnedBodies, p
 	int bodyIndex = GetIndex(body);
 
 	// Check if the body fit perfectly in one of the child quadtree and if there is child quadtree
-	if(bodyIndex != 0 && m_Nodes[0] != nullptr)
+	if(bodyIndex >= 0 && m_Nodes.size() > 0)
 	{
 		// Get the bodies from this child
-		m_Nodes[bodyIndex]->Retrieve(returnedBodies, body);
+		m_Nodes[bodyIndex].Retrieve(returnedBodies, body);
 	}
 
 	// Add the bodies of this quadtree
 	returnedBodies.insert(returnedBodies.end(), m_Objects.begin(), m_Objects.end());
 
 	return returnedBodies;
+}
+
+std::vector<p2AABB> p2QuadTree::RetrieveAABB(std::vector<p2AABB> returnedAABB)
+{
+	returnedAABB.push_back(m_Bounds);
+
+	if (m_Nodes.size() > 0)
+	{
+		// Check if the body fit perfectly in one of the child quadtree and if there is child quadtree
+		for each (p2QuadTree quad in m_Nodes)
+		{
+			returnedAABB = quad.RetrieveAABB(returnedAABB);
+		}
+	}
+
+	return returnedAABB;
+}
+
+p2AABB p2QuadTree::GetBounds()
+{
+	return m_Bounds;
 }

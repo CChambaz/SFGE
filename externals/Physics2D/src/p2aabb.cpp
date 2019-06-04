@@ -26,8 +26,8 @@ SOFTWARE.
 
 p2AABB::p2AABB(struct p2Vec2 bottomLeft, struct p2Vec2 topRight)
 {
-	this->m_BottomLeft = bottomLeft;
-	this->m_TopRight = topRight;
+	m_BottomLeft = bottomLeft;
+	m_TopRight = topRight;
 }
 
 p2AABB::p2AABB()
@@ -38,7 +38,7 @@ p2AABB::p2AABB()
 
 p2Vec2 p2AABB::GetCenter()
 {
-	return (m_TopRight - m_BottomLeft) / 2;
+	return (m_BottomLeft + m_TopRight) / 2;
 }
 
 p2Vec2 p2AABB::GetExtends() const

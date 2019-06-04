@@ -29,6 +29,8 @@ SOFTWARE.
 #include <graphics/shape2d.h>
 #include <graphics/texture.h>
 #include <graphics/sprite2d.h>
+#include <physics/physics2d.h>
+#include <p2world.h>
 
 namespace sfge
 {
@@ -65,6 +67,8 @@ public:
 
 	void DrawLine(Vec2f from, Vec2f to, sf::Color color=sf::Color::Red);
     void DrawVector(Vec2f drawingVector, Vec2f originPos, sf::Color color=sf::Color::Red);
+	void p2DebugInit();
+	void p2DebugDraw();
 	/**
 	* \brief Getter of the window created in GraphicsManager
 	* \return The SFML window
@@ -81,6 +85,9 @@ protected:
 	* \brief Write to log the OpenGL version
 	*/
 	void CheckVersion() const;
+	std::shared_ptr<p2World> m_World = nullptr;
+	std::vector<p2Body>* m_WorldBodies;
+	p2QuadTree* m_WorldQuadTree;
 	TextureManager m_TextureManager{m_Engine};
 	SpriteManager m_SpriteManager{m_Engine};
 	ShapeManager m_ShapeManager{m_Engine};

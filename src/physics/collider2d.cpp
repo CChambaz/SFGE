@@ -75,10 +75,16 @@ void ColliderManager::CreateComponent(json& componentJson, Entity entity)
 		auto & body = m_BodyManager->GetComponentRef(entity);
 
 		p2ColliderDef fixtureDef;
-
+		float radius = 0;
+		fixtureDef.entity = entity;
+		
 		if (CheckJsonExists(componentJson, "sensor"))
 		{
 			fixtureDef.isSensor = componentJson["sensor"];
+		}
+		else
+		{
+			fixtureDef.isSensor = false;
 		}
 
 		std::unique_ptr<p2Shape> shape = nullptr;
@@ -95,8 +101,10 @@ void ColliderManager::CreateComponent(json& componentJson, Entity entity)
 				{
 					//shape->m_radius = pixel2meter(static_cast<float>(componentJson["radius"]));
 					circleShape->SetRadius(pixel2meter(static_cast<float>(componentJson["radius"])));
+					radius = pixel2meter(static_cast<float>(componentJson["radius"]));
 				}
 				shape = std::move(circleShape);
+				shape->m_Type = ShapeType::CIRCLE;
 				break;
 			}
 			case ColliderType::BOX:
@@ -114,6 +122,7 @@ void ColliderManager::CreateComponent(json& componentJson, Entity entity)
 					boxShape->SetSize({ size.x / 2.0f, size.y / 2.0f });
 				}
 				shape = std::move(boxShape);
+				shape->m_Type = ShapeType::RECT;
 			}	
 			break;
 			default:
@@ -129,24 +138,28 @@ void ColliderManager::CreateComponent(json& componentJson, Entity entity)
 		{
 			fixtureDef.restitution = componentJson["bouncing"];
 		}
+		else
+		{
+			fixtureDef.restitution = 1.0f;
+		}
+
 		if (shape != nullptr)
 		{
-			fixtureDef.shape = shape.get();
+			fixtureDef.shape = *shape;
 
 			auto index = GetFreeComponentIndex();
 			if(index != -1)
 			{
 				auto* fixture = body.GetBody()->CreateCollider(&fixtureDef);
+				body.GetBody()->UpdateAABB(radius);
 
-
-				ColliderData& colliderData = m_Components[index];
-				colliderData.entity = entity;
-				colliderData.fixture = fixture;
-				colliderData.body = body.GetBody();
-				m_ComponentsInfo[index].data = &colliderData;
+				m_Components[index].entity = entity;
+				m_Components[index].fixture = fixture;
+				m_Components[index].body = body.GetBody();
+				m_ComponentsInfo[index].data = &m_Components[index];
 				m_ComponentsInfo[index].SetEntity(entity);
-				fixture->SetUserData(&colliderData);
-				std::cout << "Added the fixture to the collider\n";
+				fixture->SetUserData(&m_Components[index]);
+				fixture->SetEntity(entity);
 			}
 		}
 	}
@@ -171,7 +184,11 @@ void ColliderManager::DestroyComponent(Entity entity)
 }
 ColliderData *ColliderManager::GetComponentPtr(Entity entity)
 {
-	(void)entity;
+	for(int i = 0; i < m_ComponentsInfo.size(); i++)
+	{
+		if (m_ComponentsInfo[i].GetEntity() == entity)
+			return m_ComponentsInfo[i].data;
+	}
 	return nullptr;
 }
 }

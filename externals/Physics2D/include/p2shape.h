@@ -42,6 +42,8 @@ class p2Shape
 {
 public:
 	ShapeType m_Type;
+	float m_Radius;
+	p2Vec2 m_Size;
 };
 
 /**
@@ -55,8 +57,9 @@ public:
 	* \brief Setter for the radius
 	*/
 	void SetRadius(float radius);
-private:
-	float m_Radius;
+	float GetRadius();
+/*private:
+	float m_Radius;*/
 };
 
 /** 
@@ -67,8 +70,9 @@ class p2RectShape : public p2Shape
 public:
 	p2RectShape(p2Vec2 size = p2Vec2());
 	void SetSize(p2Vec2 size);
-private:
-	p2Vec2 m_Size;
+	p2Vec2 GetSize();
+/*private:
+	p2Vec2 m_Size;*/
 };
 
 class p2PolygonShape : public p2Shape

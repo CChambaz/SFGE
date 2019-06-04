@@ -50,11 +50,14 @@ class ContactListener : public p2ContactListener
 {
 public:
 	ContactListener(Engine& engine);
-	void BeginContact(p2Contact* contact) override;
+	void BeginContact(p2Contact contact) override;
 
-	void EndContact(p2Contact* contact) override;
+	void EndContact(p2Contact contact) override;
+
+	void SetColliderManager();
 protected:
 	Engine & m_Engine;
+	ColliderManager* m_ColliderManager;
 };
 /*
 class RaycastCallback : public p2RayCastCallback
@@ -85,6 +88,7 @@ public:
 	* \brief Get The World
 	*/
 	std::weak_ptr<p2World> GetWorld() const;
+	std::shared_ptr<p2World> GetWorldSharedPointer() const;
 	/**
 	 * \brief Called each frame to update the b2World if not in editor mode
 	 * @param dt Delta time since last frame

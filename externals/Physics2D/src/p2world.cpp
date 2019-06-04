@@ -38,6 +38,9 @@ p2World::p2World(p2Vec2 gravity, p2Vec2 screenResolution)
 
 void p2World::Step(float dt)
 {
+	// Reset the quatree
+	m_ParentQuad.Clear();
+
 	// TODO: Review the forces calculation and application
 	for (int i = 0; i < m_BodyIndex; i++)
 	{
@@ -51,11 +54,10 @@ void p2World::Step(float dt)
 		//************************************************************************************************//
 
 		// Apply acceleration
-		//body.SetLinearVelocity(body.GetLinearVelocity() + m_Gravity * dt);
+		m_Bodies[i].SetLinearVelocity(m_Bodies[i].GetLinearVelocity() + (m_Gravity * m_Bodies[i].GetMass() * dt));
 
-		// Apply movement
-		// TODO: Actually apply an acceleration with the gravity
-		p2Vec2 newPos = m_Bodies[i].GetPosition() + (m_Bodies[i].GetLinearVelocity() + m_Gravity) * dt;
+		p2Vec2 newPos = m_Bodies[i].GetPosition() + m_Bodies[i].GetLinearVelocity() * dt;
+
 		m_Bodies[i].SetPosition(newPos);
 	}
 
@@ -71,82 +73,81 @@ void p2World::Step(float dt)
 		p2Collider* currentCollider = m_Bodies[i].GetCollider();
 
 		// Define the shape of the current body
-		ShapeType* currentType = &currentCollider->GetShape()->m_Type;
+		ShapeType currentType = currentCollider->GetShape()->m_Type;
 
 		// Get the center of the current AABB
-		const p2Vec2 currentAABBCenter = m_Bodies[i].GetPosition();		
+		const p2Vec2 currentBodyPosition = m_Bodies[i].GetPosition();		
 
 		// Get the bottom left and top right point of the current AABB
 		const p2Vec2 currentAABBTopRight = m_Bodies[i].GetMaxPosition();
 		const p2Vec2 currentAABBBottomLeft = m_Bodies[i].GetMinPosition();		
 
-		// Get the extends of the current body's AABB
-		const p2Vec2 currentAABBExtends = m_Bodies[i].GetAABBExtends();
-
-		// Define the top left and bottom right point of the current AABB
-		const p2Vec2 currentAABBBottomRight = { currentAABBTopRight.x, currentAABBTopRight.y - currentAABBExtends.y };
-		const p2Vec2 currentAABBTopLeft = { currentAABBBottomLeft.x, currentAABBBottomLeft.y + currentAABBExtends.y };
-
-		// Define the radius of the circle surrounding the current AABB
-		const float currentAABBRadius = (currentAABBTopRight - currentAABBCenter).GetMagnitude();
-
 		// Get the bodies that could collide with the current body
 		returnedBodies = m_ParentQuad.Retrieve(returnedBodies, &m_Bodies[i]);
-		std::cout << "Retrieved bodies : " << returnedBodies.size() << "\n";
+		
 		// Go through the retrieved bodies and check for collision
 		for(int j = 0; j < returnedBodies.size(); j++)
 		{
-			// Get the collider of the checked body
-			p2Collider* checkedCollider = returnedBodies[i]->GetCollider();
+			// Check if the current body is not the same as the checked one
+			if (&m_Bodies[i] != returnedBodies[j])
+			{
+				// Get the collider of the checked body
+				p2Collider* checkedCollider = returnedBodies[j]->GetCollider();
 
-			// Define the shape of the checked body
-			ShapeType* checkedType = &checkedCollider->GetShape()->m_Type;
+				// Define the shape of the checked body
+				ShapeType checkedType = checkedCollider->GetShape()->m_Type;
 
-			// Get the position and top right point of the checked body
-			const p2Vec2 checkedAABBCenter = returnedBodies[j]->GetPosition();
-			const p2Vec2 checkedAABBTopRight = returnedBodies[j]->GetMaxPosition();
+				// Get the position and top right point of the checked body
+				const p2Vec2 checkedBodyPosition = returnedBodies[j]->GetPosition();
+				const p2Vec2 checkedAABBTopRight = returnedBodies[j]->GetMaxPosition();
+				const p2Vec2 checkedAABBBottomLeft = returnedBodies[j]->GetMinPosition();
 
-			// Define the radius of the circle surrounding the checked AABB
-			const float checkedAABBRadius = (checkedAABBTopRight - checkedAABBCenter).GetMagnitude();
+				bool collisionResult = false;
 
-			// Define the distance between the current to the checked AABB
-			const float distanceBetweenAABB = (checkedAABBCenter - currentAABBCenter).GetMagnitude();
-
-			// Check if the sum of the two radius is greater than the distance between the two bodies
-			if (distanceBetweenAABB <= currentAABBRadius + checkedAABBRadius)
-			{	
-				bool collisionResult = true;
-
-				//TODO: SAT
-				// Define the type of shape colliding
-				if(*currentType == ShapeType::CIRCLE && *checkedType == ShapeType::CIRCLE)
+				/*if ((currentAABBBottomLeft.x <= checkedAABBTopRight.x && currentAABBBottomLeft.y >= checkedAABBTopRight.y) ||
+					(currentAABBBottomLeft.x <= checkedAABBTopRight.x && currentAABBTopRight.y <= checkedAABBBottomLeft.y) ||
+					(currentAABBTopRight.x >= checkedAABBBottomLeft.x && currentAABBBottomLeft.y >= checkedAABBTopRight.y) ||
+					(currentAABBTopRight.x >= checkedAABBBottomLeft.x && currentAABBTopRight.y <= checkedAABBBottomLeft.y))
 				{
-					// Circle v Circle collision
+					collisionResult = true;
+					
+					// Define the type of shape colliding
+					if (currentType == ShapeType::CIRCLE && checkedType == ShapeType::CIRCLE)
+					{*/
+						// Circle v Circle collision
+						// Define the radius of the circle surrounding the current AABB
+						p2CircleShape* currentCircle = static_cast<p2CircleShape*>(currentCollider->GetShape());
+						p2CircleShape* checkedCircle = static_cast<p2CircleShape*>(checkedCollider->GetShape());
 
-					// Point of collision : 
-				}
-				else if((*currentType == ShapeType::CIRCLE || *checkedType == ShapeType::CIRCLE) && 
-						(*currentType == ShapeType::RECT || *checkedType == ShapeType::RECT))
-				{
-					// Circle v Rect collision
-				}
-				else if(*currentType == ShapeType::RECT && *checkedType == ShapeType::RECT)
-				{
-					// Rect v Rect collision
-				}
-				
-				// Get the bottom left point of the checked body
-				/*const p2Vec2 currentAABBBottomLeft = m_Bodies[i].GetMinPosition();
+						const float currentRadius = currentCircle->GetRadius();
 
-				// Get the extends of the checked body's AABB
-				const p2Vec2 currentAABBExtends = m_Bodies[i].GetAABBExtends();
+						// Define the radius of the circle surrounding the checked AABB
+						const float checkedRadius = checkedCircle->GetRadius();
 
-				// Define the top left and bottom right point of the checked AABB
-				const p2Vec2 currentAABBBottomRight = { currentAABBTopRight.x, currentAABBTopRight.y - currentAABBExtends.y };
-				const p2Vec2 currentAABBTopLeft = { currentAABBBottomLeft.x, currentAABBBottomLeft.y + currentAABBExtends.y };*/
+						// Define the distance between the current to the checked AABB
+						const float distanceBetweenBodies = (checkedBodyPosition - currentBodyPosition).GetMagnitude();
+
+						// Check if the sum of the two radius is greater than the distance between the two bodies
+						if (distanceBetweenBodies <= currentRadius + checkedRadius + 0.1f)
+						{
+							collisionResult = true;
+						}
+					/*}
+					else if ((currentType == ShapeType::CIRCLE && checkedType == ShapeType::RECT) ||
+						(currentType == ShapeType::RECT && checkedType == ShapeType::CIRCLE))
+					{
+						collisionResult = true;
+						// Circle v Rect collision
+					}
+					else if (currentType == ShapeType::RECT && checkedType == ShapeType::RECT)
+					{
+						collisionResult = true;
+						// Rect v Rect collision
+					}
+				}*/
 
 				// SAT success
-				if(collisionResult)
+				if (collisionResult)
 				{
 					// Create the contact
 					p2Contact* contact = m_ContactManager.CreateContact(currentCollider, checkedCollider);
@@ -154,30 +155,45 @@ void p2World::Step(float dt)
 					// Apply the contact if the contact is a new one
 					if (contact != nullptr)
 					{
-						m_ContactListener->BeginContact(contact);
+						// Contact is lost on the begin contact event
+						m_ContactListener->BeginContact(*contact);
 
-						// TODO: Apply the collision forces
-					}					
+						if (!currentCollider->IsSensor() && !checkedCollider->IsSensor())
+						{
+							p2Vec2 vectorBetweenCenters = checkedBodyPosition - currentBodyPosition;
 
-					// Move to the next body
-					continue;
+							// Get point of collision of the current body
+							float currentCollisionAngle = atan(vectorBetweenCenters.y / vectorBetweenCenters.x);
+							float currentComponentX = sin(currentCollisionAngle) * currentRadius;
+							float currentComponentY = cos(currentCollisionAngle) * currentRadius;
+							p2Vec2 collisionPoint = { currentComponentX, currentComponentY };							
+
+							// Reflection calculation
+							p2Vec2 currentNormal = collisionPoint - (currentBodyPosition / 100);
+							p2Vec2 newCurrentVelocity = (m_Bodies[i].GetLinearVelocity() - currentNormal * 2 * (p2Vec2::Dot(m_Bodies[i].GetLinearVelocity(), currentNormal))) * m_Bodies[i].GetRestitution(); 
+							currentNormal = collisionPoint - (checkedBodyPosition / 100);
+							
+							p2Vec2 newCheckedVelocity = (returnedBodies[j]->GetLinearVelocity() - currentNormal * 2 * (p2Vec2::Dot(returnedBodies[j]->GetLinearVelocity(), currentNormal))) * returnedBodies[j]->GetRestitution(); //m_Bodies[i].GetLinearVelocity() * m_Bodies[i].GetRestitution() * -1;
+							m_Bodies[i].SetLinearVelocity(newCurrentVelocity);
+							returnedBodies[j]->SetLinearVelocity(newCheckedVelocity);
+						}
+					}
 				}
-			}
+				else
+				{
+					// Try to get a contact between the two actual bodies
+					int contactID = m_ContactManager.GetContactID(currentCollider, checkedCollider);
 
-			// Try to get a contact between the two actual bodies
-			int contactID = m_ContactManager.GetContactID(currentCollider, checkedCollider);
-
-			// If the bodies where in contact before, end it and destroy it
-			if (contactID != -1)
-			{
-				m_ContactListener->EndContact(m_ContactManager.GetContactByID(contactID));
-				m_ContactManager.DestroyContact(contactID);
+					// If the bodies where in contact before, end it and destroy it
+					if (contactID != -1)
+					{
+						m_ContactListener->EndContact(*m_ContactManager.GetContactByID(contactID));
+						m_ContactManager.DestroyContact(contactID);
+					}
+				}
 			}
 		}
 	}	
-
-	// Reset the quatree
-	m_ParentQuad.Clear();
 }
 
 p2Body * p2World::CreateBody(p2BodyDef* bodyDef)
@@ -191,4 +207,14 @@ p2Body * p2World::CreateBody(p2BodyDef* bodyDef)
 void p2World::SetContactListener(p2ContactListener * contactListener)
 {
 	m_ContactListener = contactListener;
+}
+
+std::vector<p2Body>* p2World::GetBodies()
+{
+	return &m_Bodies;
+}
+
+p2QuadTree* p2World::GetQuad()
+{
+	return &m_ParentQuad;
 }

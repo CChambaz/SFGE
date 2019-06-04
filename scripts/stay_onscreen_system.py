@@ -25,6 +25,5 @@ class StayOnscreenSystem(System):
     def on_draw(self):
         config = engine.config
         screen_size = config.screen_size
-        graphics2d_manager.draw_line(Vec2f(0, screen_size.y), Vec2f(screen_size.x, 0), Color.Green)
 
 

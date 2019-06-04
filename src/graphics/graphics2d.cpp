@@ -93,6 +93,7 @@ void Graphics2dManager::OnDraw()
 	{
 		m_SpriteManager.DrawSprites(*m_Window);
 		m_ShapeManager.DrawShapes(*m_Window);
+		p2DebugDraw();
 	}
 }
 
@@ -179,6 +180,66 @@ void Graphics2dManager::DrawVector(Vec2f drawingVector, Vec2f originPos, sf::Col
     DrawLine(destination, destination+dir.Rotate(135.0f)*length/5,color);
     DrawLine(destination, destination+dir.Rotate(-135.0f)*length/5,color);
 
+}
+
+void Graphics2dManager::p2DebugDraw()
+{
+	if (m_World == nullptr)
+	{
+		m_World = m_Engine.GetPhysicsManager()->GetWorldSharedPointer();
+		m_WorldBodies = m_World->GetBodies();
+		m_WorldQuadTree = m_World->GetQuad();
+	}
+
+	if (m_World->debugBodies)
+	{
+		for each (p2Body body in *m_WorldBodies)
+		{
+			p2Vec2 currentPosition = (body.GetPosition()) * 100;
+			p2Vec2 currentForce = body.GetLinearVelocity();
+			Vec2f currentAABBMinPosition = meter2pixel(body.GetMinPosition());
+			Vec2f currentAABBMaxPosition = meter2pixel(body.GetMaxPosition());
+
+			float maxX = currentAABBMaxPosition.x;
+			float maxY = currentAABBMaxPosition.y;
+
+			float minX = currentAABBMinPosition.x;
+			float minY = currentAABBMinPosition.y;
+
+			// Draw AABB
+			DrawLine(Vec2f(minX, minY), Vec2f(maxX, minY), sf::Color::Red);	// bottom
+			DrawLine(Vec2f(minX, minY), Vec2f(minX, maxY), sf::Color::Red);	// left
+			DrawLine(Vec2f(maxX, minY), Vec2f(maxX, maxY), sf::Color::Red);	// right
+			DrawLine(Vec2f(minX, maxY), Vec2f(maxX, maxY), sf::Color::Red);	// top
+
+			// Draw force
+			DrawVector(Vec2f(currentForce.x, currentForce.y), Vec2f(currentPosition.x, currentPosition.y), sf::Color::Blue);
+		}
+	}
+	if(m_World->debugQuadTree)
+	{
+		std::vector<p2AABB> quadsAABB;
+		quadsAABB = m_WorldQuadTree->RetrieveAABB(quadsAABB);
+
+		for each (p2AABB aabb in quadsAABB)
+		{
+			p2Vec2 aabbCenter = aabb.GetCenter();
+
+			/*DrawLine(Vec2f(aabbCenter.x, aabb.m_BottomLeft.y), Vec2f(aabbCenter.x, aabb.m_TopRight.y), sf::Color::Yellow);
+			DrawLine(Vec2f(aabb.m_BottomLeft.x, aabbCenter.y), Vec2f(aabb.m_TopRight.x, aabbCenter.y), sf::Color::Yellow);
+			*/
+			float minY = aabb.m_BottomLeft.y;
+			float minX = aabb.m_BottomLeft.x;
+
+			float maxY = aabb.m_TopRight.y;
+			float maxX = aabb.m_TopRight.x;
+
+			DrawLine(Vec2f(minX, minY), Vec2f(maxX, minY), sf::Color::Green);	// bottom
+			DrawLine(Vec2f(minX, minY), Vec2f(minX, maxY), sf::Color::Green);	// left
+			DrawLine(Vec2f(maxX, minY), Vec2f(maxX, maxY), sf::Color::Green);	// right
+			DrawLine(Vec2f(minX, maxY), Vec2f(maxX, maxY), sf::Color::Green);	// top
+		}
+	}
 }
 
 }

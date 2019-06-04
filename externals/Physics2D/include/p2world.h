@@ -51,6 +51,12 @@ public:
 	* \brief Set the contact listener
 	*/
 	void SetContactListener(p2ContactListener* contactListener);
+
+	bool debugQuadTree = true;
+	bool debugBodies = true;
+
+	std::vector<p2Body>* GetBodies();
+	p2QuadTree* GetQuad();
 private:
 	p2Vec2 m_ScreenResolution;
 	p2Vec2 m_Gravity;

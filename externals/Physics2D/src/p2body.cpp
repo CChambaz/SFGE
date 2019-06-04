@@ -30,6 +30,8 @@ void p2Body::Init(p2BodyDef* bodyDef)
 	m_LinearVelocity = bodyDef->linearVelocity;
 	m_Position = bodyDef->position;
 	m_GravityScale = bodyDef->gravityScale;
+	m_Mass = bodyDef->mass;
+	m_AABB = p2AABB(p2Vec2(-1, -1), p2Vec2(1, 1));
 	m_Colliders.resize(MAX_COLLIDER_LEN);
 }
 
@@ -54,7 +56,7 @@ p2Vec2 p2Body::GetPosition()
 
 p2Vec2 p2Body::GetMinPosition()
 {
-	return m_Position - m_AABB.m_BottomLeft;
+	return m_Position + m_AABB.m_BottomLeft;
 }
 
 p2Vec2 p2Body::GetMaxPosition()
@@ -77,12 +79,49 @@ std::vector<p2Collider>* p2Body::GetColliders()
 	return &m_Colliders;
 }
 
-p2Collider * p2Body::CreateCollider(p2ColliderDef * colliderDef)
+p2Collider * p2Body::CreateCollider(p2ColliderDef* colliderDef)
 {
-	p2Collider collider = p2Collider(*colliderDef);
-	m_Colliders.push_back(collider);
+	if (m_ColliderIndex >= MAX_COLLIDER_LEN)
+		return nullptr;
+
+	m_Colliders[m_ColliderIndex] = p2Collider(*colliderDef);
 	m_ColliderIndex++;
-	return &collider;
+
+	return &m_Colliders[m_ColliderIndex - 1];
+}
+
+void p2Body::UpdateAABB(float radius)
+{
+	p2Vec2 bottomLeft;
+	p2Vec2 topRight;
+
+	switch (m_Colliders[m_ColliderIndex - 1].GetShape()->m_Type)
+	{
+	case ShapeType::CIRCLE:
+	{
+		p2CircleShape* circle = static_cast<p2CircleShape*>(m_Colliders[m_ColliderIndex].GetShape());
+
+		bottomLeft.x = -radius;//circle->GetRadius();
+		bottomLeft.y = -radius;//circle->GetRadius();
+
+		//bottomLeft *= -1;
+
+		topRight.x = radius; circle->GetRadius();
+		topRight.y = radius; circle->GetRadius();
+	}
+	break;
+	case ShapeType::RECT:
+	{
+		p2RectShape* rect = static_cast<p2RectShape*>(m_Colliders[m_ColliderIndex].GetShape());
+
+		bottomLeft = (rect->GetSize() / 2) * -1;
+		topRight = rect->GetSize() / 2;
+	}
+	break;
+	}
+
+	m_AABB.m_BottomLeft = bottomLeft;
+	m_AABB.m_TopRight = topRight;
 }
 
 void p2Body::ApplyForceToCenter(const p2Vec2& force)
@@ -102,5 +141,10 @@ p2BodyType p2Body::GetType() const
 
 float p2Body::GetMass() const
 {
-	return 0.0f;
+	return m_Mass;
+}
+
+float p2Body::GetRestitution()
+{
+	return m_Restitution;
 }

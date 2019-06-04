@@ -83,6 +83,11 @@ p2Contact* p2ContactManager::GetContactByID(int contactID)
 	return &m_Contacts[contactID];
 }
 
+std::vector<p2Contact>* p2ContactManager::GetContacts()
+{
+	return &m_Contacts;
+}
+
 void p2ContactManager::DestroyContact(p2Collider* colliderA, p2Collider* colliderB)
 {
 	for (int i = 0; i < m_ContactIndex; i++)

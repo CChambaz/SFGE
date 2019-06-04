@@ -49,6 +49,8 @@ void Physics2dManager::OnEngineInit()
 
 	m_BodyManager.OnEngineInit();
 	m_ColliderManager.OnEngineInit();
+
+	m_ContactListener->SetColliderManager();
 }
 
 void Physics2dManager::OnUpdate(float dt)
@@ -72,6 +74,11 @@ std::weak_ptr<p2World> Physics2dManager::GetWorld() const
 	return m_World;
 }
 
+
+std::shared_ptr<p2World> Physics2dManager::GetWorldSharedPointer() const
+{
+	return m_World;
+}
 
 void Physics2dManager::Destroy()
 {
@@ -115,19 +122,15 @@ float Physics2dManager::Raycast(Vec2f startPoint, Vec2f direction, float rayLeng
 	return rayCastCallback.fraction;
 }
 */
-void ContactListener::BeginContact(p2Contact* contact)
+void ContactListener::BeginContact(p2Contact contact)
 {
 	auto* pythonEngine = m_Engine.GetPythonEngine();
-	const auto colliderA = static_cast<ColliderData*>(contact->GetColliderA()->GetUserData());
-	const auto colliderB = static_cast<ColliderData*>(contact->GetColliderB()->GetUserData());
 
-	/*{
-		std::ostringstream oss;
-		oss << "Begin Contact between: " << colliderA->entity << " and: " << colliderB->entity;
-		Log::GetInstance()->Msg(oss.str());
-	}*/
-
+	auto* colliderA = static_cast<ColliderData*>(contact.GetColliderA()->GetUserData());
+	auto* colliderB = static_cast<ColliderData*>(contact.GetColliderB()->GetUserData());
+	
 	auto& pySystems = pythonEngine->GetPySystemManager().GetPySystems();
+	
 	for(size_t i = 0;i < pySystems.size();i++)
 	{
 		if(pySystems[i] != nullptr)
@@ -138,19 +141,15 @@ void ContactListener::BeginContact(p2Contact* contact)
 		
 }
 
-void ContactListener::EndContact(p2Contact* contact)
+void ContactListener::EndContact(p2Contact contact)
 {
 	auto pythonEngine = m_Engine.GetPythonEngine();
-	auto* colliderA = static_cast<ColliderData*>(contact->GetColliderA()->GetUserData());
-	auto* colliderB = static_cast<ColliderData*>(contact->GetColliderB()->GetUserData());
 
-	/*{
-		std::ostringstream oss;
-		oss << "End Contact between: " << colliderA->entity << " and: " << colliderB->entity;
-		Log::GetInstance()->Msg(oss.str());
-	}*/
+	auto* colliderA = static_cast<ColliderData*>(contact.GetColliderA()->GetUserData());
+	auto* colliderB = static_cast<ColliderData*>(contact.GetColliderB()->GetUserData());
 
 	auto& pySystems = pythonEngine->GetPySystemManager().GetPySystems();
+
 	for (size_t i = 0; i < pySystems.size(); i++)
 	{
 		if (pySystems[i] != nullptr)
@@ -199,6 +198,12 @@ ContactListener::ContactListener(Engine& engine):
 	m_Engine(engine)
 {
 }
+
+void ContactListener::SetColliderManager()
+{
+	m_ColliderManager = m_Engine.GetPhysicsManager()->GetColliderManager();
+}
+
 /*
 float32 RaycastCallback::ReportFixture(b2Fixture *fixture, const p2Vec2 &point, const p2Vec2 &normal, float32 fraction)
 {
