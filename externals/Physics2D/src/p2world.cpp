@@ -104,16 +104,14 @@ void p2World::Step(float dt)
 
 				bool collisionResult = false;
 
-				/*if ((currentAABBBottomLeft.x <= checkedAABBTopRight.x && currentAABBBottomLeft.y >= checkedAABBTopRight.y) ||
-					(currentAABBBottomLeft.x <= checkedAABBTopRight.x && currentAABBTopRight.y <= checkedAABBBottomLeft.y) ||
-					(currentAABBTopRight.x >= checkedAABBBottomLeft.x && currentAABBBottomLeft.y >= checkedAABBTopRight.y) ||
-					(currentAABBTopRight.x >= checkedAABBBottomLeft.x && currentAABBTopRight.y <= checkedAABBBottomLeft.y))
+				if (currentAABBBottomLeft.x < checkedAABBTopRight.x &&
+					currentAABBBottomLeft.y > checkedAABBTopRight.y &&
+					currentAABBTopRight.x > checkedAABBBottomLeft.x &&
+					currentAABBTopRight.y < checkedAABBBottomLeft.y)
 				{
-					collisionResult = true;
-					
 					// Define the type of shape colliding
 					if (currentType == ShapeType::CIRCLE && checkedType == ShapeType::CIRCLE)
-					{*/
+					{
 						// Circle v Circle collision
 						// Define the radius of the circle surrounding the current AABB
 						p2CircleShape* currentCircle = static_cast<p2CircleShape*>(currentCollider->GetShape());
@@ -132,50 +130,52 @@ void p2World::Step(float dt)
 						{
 							collisionResult = true;
 						}
-					/*}
-					else if ((currentType == ShapeType::CIRCLE && checkedType == ShapeType::RECT) ||
-						(currentType == ShapeType::RECT && checkedType == ShapeType::CIRCLE))
-					{
-						collisionResult = true;
-						// Circle v Rect collision
-					}
-					else if (currentType == ShapeType::RECT && checkedType == ShapeType::RECT)
-					{
-						collisionResult = true;
-						// Rect v Rect collision
-					}
-				}*/
-
-				// SAT success
-				if (collisionResult)
-				{
-					// Create the contact
-					p2Contact* contact = m_ContactManager.CreateContact(currentCollider, checkedCollider);
-
-					// Apply the contact if the contact is a new one
-					if (contact != nullptr)
-					{
-						// Contact is lost on the begin contact event
-						m_ContactListener->BeginContact(*contact);
-
-						if (!currentCollider->IsSensor() && !checkedCollider->IsSensor())
+						/*}
+						else if ((currentType == ShapeType::CIRCLE && checkedType == ShapeType::RECT) ||
+							(currentType == ShapeType::RECT && checkedType == ShapeType::CIRCLE))
 						{
-							p2Vec2 vectorBetweenCenters = checkedBodyPosition - currentBodyPosition;
+							collisionResult = true;
+							// Circle v Rect collision
+						}
+						else if (currentType == ShapeType::RECT && checkedType == ShapeType::RECT)
+						{
+							collisionResult = true;
+							// Rect v Rect collision
+						}
+					}*/
 
-							// Get point of collision of the current body
-							float currentCollisionAngle = atan(vectorBetweenCenters.y / vectorBetweenCenters.x);
-							float currentComponentX = sin(currentCollisionAngle) * currentRadius;
-							float currentComponentY = cos(currentCollisionAngle) * currentRadius;
-							p2Vec2 collisionPoint = { currentComponentX, currentComponentY };							
+					// SAT success
+						if (collisionResult)
+						{
+							// Create the contact
+							p2Contact* contact = m_ContactManager.CreateContact(currentCollider, checkedCollider);
 
-							// Reflection calculation
-							p2Vec2 currentNormal = collisionPoint - (currentBodyPosition / 100);
-							p2Vec2 newCurrentVelocity = (m_Bodies[i].GetLinearVelocity() - currentNormal * 2 * (p2Vec2::Dot(m_Bodies[i].GetLinearVelocity(), currentNormal))) * m_Bodies[i].GetRestitution(); 
-							currentNormal = collisionPoint - (checkedBodyPosition / 100);
-							
-							p2Vec2 newCheckedVelocity = (returnedBodies[j]->GetLinearVelocity() - currentNormal * 2 * (p2Vec2::Dot(returnedBodies[j]->GetLinearVelocity(), currentNormal))) * returnedBodies[j]->GetRestitution(); //m_Bodies[i].GetLinearVelocity() * m_Bodies[i].GetRestitution() * -1;
-							m_Bodies[i].SetLinearVelocity(newCurrentVelocity);
-							returnedBodies[j]->SetLinearVelocity(newCheckedVelocity);
+							// Apply the contact if the contact is a new one
+							if (contact != nullptr)
+							{
+								// Contact is lost on the begin contact event
+								m_ContactListener->BeginContact(*contact);
+
+								if (!currentCollider->IsSensor() && !checkedCollider->IsSensor())
+								{
+									p2Vec2 vectorBetweenCenters = checkedBodyPosition - currentBodyPosition;
+
+									// Get point of collision of the current body
+									float currentCollisionAngle = atan(vectorBetweenCenters.y / vectorBetweenCenters.x);
+									float currentComponentX = sin(currentCollisionAngle) * currentRadius;
+									float currentComponentY = cos(currentCollisionAngle) * currentRadius;
+									p2Vec2 collisionPoint = { currentComponentX, currentComponentY };
+
+									// Reflection calculation
+									p2Vec2 currentNormal = collisionPoint - (currentBodyPosition / 100);
+									p2Vec2 newCurrentVelocity = (m_Bodies[i].GetLinearVelocity() - currentNormal * 2 * (p2Vec2::Dot(m_Bodies[i].GetLinearVelocity(), currentNormal))) * m_Bodies[i].GetRestitution();
+									currentNormal = collisionPoint - (checkedBodyPosition / 100);
+
+									p2Vec2 newCheckedVelocity = (returnedBodies[j]->GetLinearVelocity() - currentNormal * 2 * (p2Vec2::Dot(returnedBodies[j]->GetLinearVelocity(), currentNormal))) * returnedBodies[j]->GetRestitution(); //m_Bodies[i].GetLinearVelocity() * m_Bodies[i].GetRestitution() * -1;
+									m_Bodies[i].SetLinearVelocity(newCurrentVelocity);
+									returnedBodies[j]->SetLinearVelocity(newCheckedVelocity);
+								}
+							}
 						}
 					}
 				}
