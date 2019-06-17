@@ -211,6 +211,7 @@ void Graphics2dManager::p2DebugDraw()
 			DrawLine(Vec2f(minX, minY), Vec2f(minX, maxY), sf::Color::Red);	// left
 			DrawLine(Vec2f(maxX, minY), Vec2f(maxX, maxY), sf::Color::Red);	// right
 			DrawLine(Vec2f(minX, maxY), Vec2f(maxX, maxY), sf::Color::Red);	// top
+			DrawLine(Vec2f(minX, minY), Vec2f(maxX, maxY), sf::Color::Yellow);	// Diagonal
 
 			// Draw force
 			DrawVector(Vec2f(currentForce.x, currentForce.y), Vec2f(currentPosition.x, currentPosition.y), sf::Color::Blue);

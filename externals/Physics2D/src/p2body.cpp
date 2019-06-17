@@ -32,6 +32,7 @@ void p2Body::Init(p2BodyDef* bodyDef)
 	m_GravityScale = bodyDef->gravityScale;
 	m_Mass = bodyDef->mass;
 	m_AABB = p2AABB(p2Vec2(-1, -1), p2Vec2(1, 1));
+	m_Restitution = bodyDef->restitution;
 	m_Colliders.resize(MAX_COLLIDER_LEN);
 }
 
@@ -101,13 +102,13 @@ void p2Body::UpdateAABB(float radius)
 	{
 		p2CircleShape* circle = static_cast<p2CircleShape*>(m_Colliders[m_ColliderIndex].GetShape());
 
-		bottomLeft.x = -radius;//circle->GetRadius();
-		bottomLeft.y = -radius;//circle->GetRadius();
+		topRight.x = radius;
+		topRight.y = -radius;
 
 		//bottomLeft *= -1;
 
-		topRight.x = radius; circle->GetRadius();
-		topRight.y = radius; circle->GetRadius();
+		bottomLeft.x = -radius; //circle->GetRadius();
+		bottomLeft.y = radius; //circle->GetRadius();
 	}
 	break;
 	case ShapeType::RECT:
