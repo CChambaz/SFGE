@@ -161,11 +161,15 @@ std::vector<p2Body*> p2QuadTree::Retrieve(std::vector<p2Body*> returnedBodies, p
 	// Get the index of the child quadtree where the body is located
 	int bodyIndex = GetIndex(body);
 
+	std::vector<p2Body*> bodies;
+
 	// Check if the body fit perfectly in one of the child quadtree and if there is child quadtree
 	if(bodyIndex >= 0 && m_Nodes.size() > 0)
 	{
 		// Get the bodies from this child
-		m_Nodes[bodyIndex].Retrieve(returnedBodies, body);
+		bodies = m_Nodes[bodyIndex].Retrieve(bodies, body);
+
+		returnedBodies.insert(returnedBodies.end(), bodies.begin(), bodies.end());
 	}
 
 	// Add the bodies of this quadtree
