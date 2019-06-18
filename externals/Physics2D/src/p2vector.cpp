@@ -87,6 +87,11 @@ p2Vec2 p2Vec2::operator*(float f) const
 	return { x*f, y*f };
 }
 
+p2Vec2 p2Vec2::operator*(p2Vec2 v) const
+{
+	return { x * v.x, y * v.y };
+}
+
 float p2Vec2::Dot(p2Vec2 v1, p2Vec2 v2)
 {
 	//TODO

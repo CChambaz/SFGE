@@ -91,7 +91,7 @@ p2Collider * p2Body::CreateCollider(p2ColliderDef* colliderDef)
 	return &m_Colliders[m_ColliderIndex - 1];
 }
 
-void p2Body::UpdateAABB(float radius)
+void p2Body::UpdateAABB(float radius, p2Vec2 size)
 {
 	p2Vec2 bottomLeft;
 	p2Vec2 topRight;
@@ -105,18 +105,19 @@ void p2Body::UpdateAABB(float radius)
 		topRight.x = radius;
 		topRight.y = -radius;
 
-		//bottomLeft *= -1;
-
-		bottomLeft.x = -radius; //circle->GetRadius();
-		bottomLeft.y = radius; //circle->GetRadius();
+		bottomLeft.x = -radius;
+		bottomLeft.y = radius; 
 	}
 	break;
 	case ShapeType::RECT:
 	{
 		p2RectShape* rect = static_cast<p2RectShape*>(m_Colliders[m_ColliderIndex].GetShape());
 
-		bottomLeft = (rect->GetSize() / 2) * -1;
-		topRight = rect->GetSize() / 2;
+		topRight.x = size.x;
+		topRight.y = -size.y;
+
+		bottomLeft.x = -size.x;
+		bottomLeft.y = size.y;
 	}
 	break;
 	}

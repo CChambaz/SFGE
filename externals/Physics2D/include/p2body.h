@@ -88,7 +88,7 @@ public:
 	* \return p2Collider collider attached to the p2Body
 	*/
 	p2Collider* CreateCollider(p2ColliderDef* colliderDef);
-	void p2Body::UpdateAABB(float radius);
+	void p2Body::UpdateAABB(float radius, p2Vec2 size = { 0,0 });
 	void ApplyForceToCenter(const p2Vec2& force);
 	void SetPosition(const p2Vec2 position);
 	p2BodyType GetType() const;

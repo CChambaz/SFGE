@@ -14,7 +14,6 @@ p2Collider::p2Collider(p2ColliderDef colDef)
 			p2CircleShape* circle = static_cast<p2CircleShape*>(&colDef.shape);
 			m_Shape = p2CircleShape(circle->GetRadius());
 			//circle->SetRadius(circleRadius);
-			std::cout << "Circle radius : " << static_cast<p2CircleShape*>(&m_Shape)->GetRadius() << "\n";
 		}
 		break;
 		case ShapeType::RECT:

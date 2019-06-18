@@ -76,6 +76,7 @@ void ColliderManager::CreateComponent(json& componentJson, Entity entity)
 
 		p2ColliderDef fixtureDef;
 		float radius = 0;
+		p2Vec2 rectSize = { 0,0 };
 		fixtureDef.entity = entity;
 		
 		if (CheckJsonExists(componentJson, "sensor"))
@@ -118,6 +119,7 @@ void ColliderManager::CreateComponent(json& componentJson, Entity entity)
 						oss << "Box physics size: " << size.x << ", " << size.y;
 						Log::GetInstance()->Msg(oss.str());
 					}
+					rectSize = { size.x / 2.0f, size.y / 2.0f };
 					//boxShape->SetAsBox(size.x / 2.0f, size.y / 2.0f);
 					boxShape->SetSize({ size.x / 2.0f, size.y / 2.0f });
 				}
@@ -151,7 +153,7 @@ void ColliderManager::CreateComponent(json& componentJson, Entity entity)
 			if(index != -1)
 			{
 				auto* fixture = body.GetBody()->CreateCollider(&fixtureDef);
-				body.GetBody()->UpdateAABB(radius);
+				body.GetBody()->UpdateAABB(radius, rectSize);
 
 				m_Components[index].entity = entity;
 				m_Components[index].fixture = fixture;
